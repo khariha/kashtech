@@ -1,0 +1,85 @@
+.login-container {
+  display: flex;
+  height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.left-pane {
+  flex: 1;
+  background-image: url("https://cdn.midjourney.com/ae7f31b0-3474-4ca3-9d57-7e1e8ee557cb/0_0_2048_N.webp"); /* ✅ Update path if needed */
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  color: #aefde3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 50px;
+}
+
+.headline {
+  font-size: 4rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.footer {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  color: #ff7b00;
+  font-weight: bold;
+}
+
+.right-pane {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+}
+
+.form {
+  width: 100%;
+  max-width: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #306998;
+  text-align: center;
+}
+
+label {
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #306998;
+}
+
+input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+button {
+  padding: 12px;
+  background-color: #306998;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #265b85;
+}

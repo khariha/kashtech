@@ -1,0 +1,15 @@
+[
+    {
+      "name": "United States",
+      "states": ["Alabama", "Alaska", "Arizona", "California", "Florida", "New York", "Texas"]
+    },
+    {
+      "name": "India",
+      "states": ["Andhra Pradesh", "Delhi", "Karnataka", "Maharashtra", "Tamil Nadu", "Telangana"]
+    },
+    {
+      "name": "Canada",
+      "states": ["Alberta", "British Columbia", "Ontario", "Quebec", "Nova Scotia"]
+    }
+  ]
+  
