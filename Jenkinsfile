@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/dhineshagr/kashtech.git'
+                git branch: 'main', url: 'https://github.com/dhineshagr/kashtech.git'
             }
         }
 
