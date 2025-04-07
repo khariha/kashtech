@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'dhineshagr/kashtech'
-        TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = "dhineshagr/kashtech:windows-latest"
+        DOCKERHUB_CREDENTIALS_ID = "dockerhub-creds" // Update this in Jenkins
     }
 
     stages {
@@ -27,20 +27,31 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build --isolation=hyperv -t %IMAGE_NAME%:%TAG% ."
-                bat "docker tag %IMAGE_NAME%:%TAG% %IMAGE_NAME%:latest"
+                bat "docker build -t %DOCKER_IMAGE% ."
             }
         }
 
-
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
-                    bat "docker push %IMAGE_NAME%:%TAG%"
-                    bat "docker push %IMAGE_NAME%:latest"
+                withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS_ID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    bat """
+                        docker login -u %USERNAME% -p %PASSWORD%
+                        docker push %DOCKER_IMAGE%
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished!'
+        }
+        success {
+            echo 'Docker image built and pushed successfully.'
+        }
+        failure {
+            echo 'Something went wrong.'
         }
     }
 }
