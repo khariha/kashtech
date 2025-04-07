@@ -2,14 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "dhineshagr/kashtech:windows-latest"
-        DOCKERHUB_CREDENTIALS_ID = "dockerhub-creds" // Update this in Jenkins
+        DOCKER_IMAGE = "dhineshagr/kashtech:latest"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git url: 'https://github.com/dhineshagr/kashtech.git'
             }
         }
 
@@ -27,16 +26,16 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %DOCKER_IMAGE% ."
+                bat "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS_ID, usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat """
-                        docker login -u %USERNAME% -p %PASSWORD%
-                        docker push %DOCKER_IMAGE%
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                        docker push ${DOCKER_IMAGE}
                     """
                 }
             }
@@ -45,13 +44,7 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline finished!'
-        }
-        success {
-            echo 'Docker image built and pushed successfully.'
-        }
-        failure {
-            echo 'Something went wrong.'
+            echo '✅ Pipeline finished!'
         }
     }
 }
