@@ -27,10 +27,11 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:%TAG% ."
+                bat "docker build --isolation=hyperv -t %IMAGE_NAME%:%TAG% ."
                 bat "docker tag %IMAGE_NAME%:%TAG% %IMAGE_NAME%:latest"
             }
         }
+
 
         stage('Push to Docker Hub') {
             steps {
