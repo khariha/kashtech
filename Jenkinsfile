@@ -2,7 +2,15 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "dhineshagr/kashtech:latest"
+        IMAGE_NAME = "dhineshagr/kashtech"
+        IMAGE_TAG = "build-${BUILD_NUMBER}"
+        DOCKER_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+        LATEST_TAG = "${IMAGE_NAME}:latest"
+        REMOTE_HOST = "172.174.98.154"
+        SSH_CRED_ID = "azure-ssh-key"
+        CONTAINER_NAME = "kashtech"
+        APP_PORT = "3000"
+        EXPOSED_PORT = "3000"
     }
 
     stages {
@@ -26,7 +34,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t ${DOCKER_IMAGE} ."
+                bat "docker build -t ${DOCKER_IMAGE} -t ${LATEST_TAG} ."
             }
         }
 
@@ -36,15 +44,45 @@ pipeline {
                     bat """
                         echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                         docker push ${DOCKER_IMAGE}
+                        docker push ${LATEST_TAG}
                     """
                 }
             }
         }
+
+        stage('Deploy to Dev Server') {
+            steps {
+                sshagent([env.SSH_CRED_ID]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no azureuser@${REMOTE_HOST} << 'EOF'
+                        docker rm -f ${CONTAINER_NAME} || true
+                        docker pull ${LATEST_TAG}
+                        docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}
+                    EOF
+                    """
+                }
+            }
+        }
+
+        // Optional manual prod stage (commented out for now)
+        // stage('Deploy to Production') {
+        //     when {
+        //         beforeInput true
+        //         branch 'main'
+        //     }
+        //     steps {
+        //         input message: "Deploy build ${BUILD_NUMBER} to Production?"
+        //         echo "🚀 Production deployment step would go here."
+        //     }
+        // }
     }
 
     post {
+        success {
+            echo "✅ Successfully built and deployed: ${DOCKER_IMAGE}"
+        }
         always {
-            echo '✅ Pipeline finished!'
+            echo '📦 Pipeline finished!'
         }
     }
 }
