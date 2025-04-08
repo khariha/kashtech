@@ -62,7 +62,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
                 return;
             }
 
-            const res = await axios.post("http://localhost:5000/api/employees", formData, {
+            const res = await axios.post("http://172.174.98.154:5000/api/employees", formData, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 

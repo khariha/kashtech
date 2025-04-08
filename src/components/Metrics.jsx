@@ -11,19 +11,19 @@ const Metrics = () => {
         const token = localStorage.getItem("token");
   
         const [totalRes, activeRes, clientsRes, empRes, avgRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/metrics/total-projects", {
+          axios.get("http://172.174.98.154:5000/api/metrics/total-projects", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/metrics/active-projects", {
+          axios.get("http://172.174.98.154:5000/api/metrics/active-projects", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/metrics/clients", {
+          axios.get("http://172.174.98.154:5000/api/metrics/clients", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/metrics/employees-assigned", {
+          axios.get("http://172.174.98.154:5000/api/metrics/employees-assigned", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/metrics/avg-hours-billed", {
+          axios.get("http://172.174.98.154:5000/api/metrics/avg-hours-billed", {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

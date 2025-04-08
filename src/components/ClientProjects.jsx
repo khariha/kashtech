@@ -16,7 +16,7 @@ const ClientProjects = () => {
         const fetchClientProjects = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get("http://localhost:5000/api/dashboard/client-projects", {
+                const res = await axios.get("http://172.174.98.154:5000/api/dashboard/client-projects", {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

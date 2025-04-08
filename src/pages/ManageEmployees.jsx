@@ -22,7 +22,7 @@ const ManageEmployees = () => {
     const fetchEmployees = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get("http://localhost:5000/api/employees", {
+            const res = await axios.get("http://172.174.98.154:5000/api/employees", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setEmployees(res.data);

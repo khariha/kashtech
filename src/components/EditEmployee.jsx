@@ -42,7 +42,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.put(
-        `http://localhost:5000/api/employees/${formData.emp_id}`,
+        `http://172.174.98.154:5000/api/employees/${formData.emp_id}`,
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -62,7 +62,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `http://localhost:5000/api/employees/${formData.emp_id}`,
+        `http://172.174.98.154:5000/api/employees/${formData.emp_id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

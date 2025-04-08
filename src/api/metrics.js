@@ -2,7 +2,7 @@
 export const fetchTotalProjects = async () => {
     const token = localStorage.getItem("token");
   
-    const response = await fetch("http://localhost:5000/api/metrics/total-projects", {
+    const response = await fetch("http://172.174.98.154:5000/api/metrics/total-projects", {
       headers: {
         Authorization: `Bearer ${token}`,
       },

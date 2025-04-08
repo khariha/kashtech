@@ -20,7 +20,7 @@ const ProjectDetails = () => {
         const fetchProject = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://localhost:5000/api/projects/${sowId}`, {
+                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setProject(res.data);
@@ -36,7 +36,7 @@ const ProjectDetails = () => {
         const fetchTasks = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://localhost:5000/api/projects/${sowId}/tasks`, {
+                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}/tasks`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setTasks(res.data);
@@ -52,7 +52,7 @@ const ProjectDetails = () => {
         const fetchEmployees = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://localhost:5000/api/projects/${sowId}/employees`, {
+                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}/employees`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setEmployees(res.data);
