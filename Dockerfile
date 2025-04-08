@@ -18,4 +18,5 @@ RUN npm run build
 RUN npm install -g serve
 
 # Serve the app
-CMD ["serve", "-s", "dist", "-l", "8080"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
+
