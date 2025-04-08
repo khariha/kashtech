@@ -53,11 +53,9 @@ pipeline {
         stage('Deploy to Dev Server') {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'azure-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                    bat """
-                        echo y | plink -batch -i "%SSH_KEY%" -hostkey "ssh-ed25519 255 SHA256:rD9ddrzyxYVBqKH+JItonJ6M+9sEMqgtJUg+PEGJxg0" azureuser@${REMOTE_HOST} ^
-                        "docker rm -f ${CONTAINER_NAME} || true && ^
-                        docker pull ${LATEST_TAG} && ^
-                        docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}"
+                     bat """
+                        plink -batch -i "%SSH_KEY%" -hostkey "ssh-ed25519 255 SHA256:rD9ddrzyxYVBqKH+JItonJ6M+9sEMqgtJUg+PEGJxg0" azureuser@${REMOTE_HOST} ^
+                        "docker rm -f ${CONTAINER_NAME} || true && docker pull ${LATEST_TAG} && docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}"
                     """
                 }
             }
