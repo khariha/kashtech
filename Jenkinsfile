@@ -54,7 +54,7 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'azure-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                     bat """
-                        echo y | plink -i %SSH_KEY% azureuser@${REMOTE_HOST} ^
+                        echo y | plink -batch -i "%SSH_KEY%" azureuser@${REMOTE_HOST} ^
                         "docker rm -f ${CONTAINER_NAME} || true && ^
                          docker pull ${LATEST_TAG} && ^
                          docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}"
@@ -63,8 +63,7 @@ pipeline {
             }
         }
 
-
-        // Optional manual prod stage (commented out for now)
+        // Optional manual prod stage (uncomment if needed)
         // stage('Deploy to Production') {
         //     when {
         //         beforeInput true
