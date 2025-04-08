@@ -52,17 +52,17 @@ pipeline {
 
         stage('Deploy to Dev Server') {
             steps {
-                sshagent([env.SSH_CRED_ID]) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no azureuser@${REMOTE_HOST} << 'EOF'
-                        docker rm -f ${CONTAINER_NAME} || true
-                        docker pull ${LATEST_TAG}
-                        docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}
-                    EOF
+                withCredentials([sshUserPrivateKey(credentialsId: 'azure-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+                    bat """
+                        echo y | plink -i %SSH_KEY% azureuser@${REMOTE_HOST} ^
+                        "docker rm -f ${CONTAINER_NAME} || true && ^
+                         docker pull ${LATEST_TAG} && ^
+                         docker run -d -p ${EXPOSED_PORT}:${APP_PORT} --name ${CONTAINER_NAME} ${LATEST_TAG}"
                     """
                 }
             }
         }
+
 
         // Optional manual prod stage (commented out for now)
         // stage('Deploy to Production') {
