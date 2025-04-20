@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import API from "../api/config";
 
 const ProjectDetails = () => {
     const { sowId } = useParams();
@@ -20,7 +21,7 @@ const ProjectDetails = () => {
         const fetchProject = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}`, {
+                const res = await axios.get(API.FETCH_PROJECT_DETAILS(sowId), {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setProject(res.data);
@@ -36,7 +37,7 @@ const ProjectDetails = () => {
         const fetchTasks = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}/tasks`, {
+                const res = await axios.get(API.FETCH_TASKS_BY_PROJECT(sowId), {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setTasks(res.data);
@@ -52,7 +53,7 @@ const ProjectDetails = () => {
         const fetchEmployees = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`http://172.174.98.154:5000/api/projects/${sowId}/employees`, {
+                const res = await axios.get(API.FETCH_EMPLOYEES_BY_PROJECT(sowId), {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setEmployees(res.data);

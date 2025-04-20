@@ -1,8 +1,10 @@
 // src/api/metrics.js
+import API from "../api/config";
+
 export const fetchTotalProjects = async () => {
     const token = localStorage.getItem("token");
   
-    const response = await fetch("http://172.174.98.154:5000/api/metrics/total-projects", {
+    const response = await fetch(API.TOTAL_PROJECTS, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

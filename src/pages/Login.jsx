@@ -1,9 +1,9 @@
-// src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import "../assets/styles/Login.css";
+import API from "../api/config";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://172.174.98.154:5000/api/auth/login", {
+      const res = await axios.post(API.AUTH_LOGIN, {
         username,
         password,
       });
@@ -28,13 +28,15 @@ const Login = () => {
         localStorage.setItem("username", decoded.username);
         localStorage.setItem("fullName", fullName);
 
+        // ✅ Redirect logic based on normalized role
         if (role === "Admin" || role === "Super Admin") {
-          navigate(state?.path || "/", { replace: true });
+          navigate(state?.path || "/dashboard", { replace: true });
         } else {
-          navigate("/no-access");
+          navigate("/employee-dashboard", { replace: true });
         }
       }
     } catch (err) {
+      console.error("Login failed:", err);
       alert("Invalid login. Please try again.");
     }
   };
@@ -54,6 +56,7 @@ const Login = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Enter your username"
+            required
           />
           <label>Password</label>
           <input

@@ -1,6 +1,7 @@
 // src/components/Metrics.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import API from "../api/config";
 
 const Metrics = () => {
   const [metrics, setMetrics] = useState(null);
@@ -11,19 +12,19 @@ const Metrics = () => {
         const token = localStorage.getItem("token");
   
         const [totalRes, activeRes, clientsRes, empRes, avgRes] = await Promise.all([
-          axios.get("http://172.174.98.154:5000/api/metrics/total-projects", {
+          axios.get(API.TOTAL_PROJECTS, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://172.174.98.154:5000/api/metrics/active-projects", {
+          axios.get(API.ACTIVE_PROJECTS, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://172.174.98.154:5000/api/metrics/clients", {
+          axios.get(API.CLIENTS, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://172.174.98.154:5000/api/metrics/employees-assigned", {
+          axios.get(API.EMPLOYEES_ASSIGNED, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://172.174.98.154:5000/api/metrics/avg-hours-billed", {
+          axios.get(API.AVG_HOURS_BILLED, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

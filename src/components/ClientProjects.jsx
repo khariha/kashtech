@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useSearch } from "../context/SearchContext";
 import { useNavigate } from "react-router-dom";
+import API from "../api/config";
 
 const ClientProjects = () => {
     const [data, setData] = useState({});
@@ -16,7 +17,7 @@ const ClientProjects = () => {
         const fetchClientProjects = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get("http://172.174.98.154:5000/api/dashboard/client-projects", {
+                const res = await axios.get(API.CLIENT_PROJECTS, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

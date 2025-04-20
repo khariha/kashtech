@@ -1,22 +1,28 @@
-// App.jsx
 import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
   useLocation,
 } from "react-router-dom";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import ProjectDetails from "./pages/ProjectDetails"; // 👈 NEW
+import ProjectDetails from "./pages/ProjectDetails";
+import ManageEmployees from "./pages/ManageEmployees";
+import ManageClients from "./pages/ManageClients";
+import ManageTimesheet from "./pages/ManageTimesheet";
+import ManageProjects from "./components/ManageProjects";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import AccessDenied from "./pages/AccessDenied";
+
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import NoAccess from "./pages/NoAccess";
+
 import { SearchProvider } from "./context/SearchContext";
 import { useTheme } from "./context/ThemeContext";
-import ManageEmployees from "./pages/ManageEmployees";
-
-// ... your imports
+import TimesheetReport from "./pages/TimesheetReport";
 
 const AppLayout = ({ children }) => {
   const { theme } = useTheme();
@@ -38,52 +44,40 @@ const AppLayout = ({ children }) => {
 const AppRoutes = () => {
   const location = useLocation();
   const token = localStorage.getItem("token");
+  const decoded = token ? JSON.parse(atob(token.split(".")[1])) : null;
+  const role = decoded?.role;
+
+  const withLayout = (Component) =>
+    token ? <AppLayout><Component /></AppLayout> : <Navigate to="/login" />;
+
+  const renderProtectedPage = (allowedRoles, Component) => {
+    if (!token) return <Navigate to="/login" />;
+    return allowedRoles.includes(role)
+      ? <AppLayout><Component /></AppLayout>
+      : <AppLayout><AccessDenied /></AppLayout>;
+  };
 
   return (
     <Routes>
       <Route path="/login" element={<Login key={location.key} />} />
-      <Route
-        path="/"
-        element={
-          token ? (
-            <AppLayout>
-              <Dashboard />
-            </AppLayout>
-          ) : (
-            <Login />
-          )
-        }
-      />
-      <Route
-        path="/projects/:sowId"
-        element={
-          token ? (
-            <AppLayout>
-              <ProjectDetails />
-            </AppLayout>
-          ) : (
-            <Login />
-          )
-        }
-      />
-      <Route
-        path="/manage-employees"
-        element={
-          token ? (
-            <AppLayout>
-              <ManageEmployees />
-            </AppLayout>
-          ) : (
-            <Login />
-          )
-        }
-      />
-      <Route path="/no-access" element={<NoAccess />} />
+      <Route path="/projects/:sowId" element={withLayout(ProjectDetails)} />
+      <Route path="/manage-projects/:companyId" element={<ManageProjects />} />
+      <Route path="/manage-timesheet" element={withLayout(ManageTimesheet)} />
+      <Route path="/employee-dashboard" element={withLayout(EmployeeDashboard)} />
+
+      {/* Admin and Super Admin Pages */}
+      <Route path="/" element={renderProtectedPage(["Admin", "Super Admin"], Dashboard)} />
+      <Route path="/manage-employees" element={renderProtectedPage(["Admin", "Super Admin"], ManageEmployees)} />
+      <Route path="/manage-clients" element={renderProtectedPage(["Admin", "Super Admin"], ManageClients)} />
+      <Route path="/timesheet-report" element={renderProtectedPage(["Admin", "Super Admin"], TimesheetReport)} />
+
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
 
-// ✅ Define the App component
 function App() {
   return (
     <SearchProvider>
@@ -94,5 +88,4 @@ function App() {
   );
 }
 
-// ✅ Now this line will work
 export default App;

@@ -5,7 +5,7 @@ import { useSearch } from "../context/SearchContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import LogoutImage from "../images/logout-icon.png";
-import KTLogo from "../images/KT-Logo.png";
+import KTLogo from "../images/KASH-Tech-Logo-Black.png";
 
 
 const Header = () => {
@@ -40,7 +40,7 @@ const Header = () => {
             <img
               src={KTLogo}
               alt="KTLogo"
-              className="w-6 h-6 object-contain"
+              className="w-8 h-8 object-contain"
             />
           </div>
 

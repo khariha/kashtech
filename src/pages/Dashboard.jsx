@@ -4,6 +4,7 @@ import axios from "axios";
 import DashboardHeader from "../components/DashboardHeader";
 import Metrics from "../components/Metrics";
 import ClientProjects from "../components/ClientProjects";
+import API from "../api/config";
 
 const Dashboard = () => {
   const [userName, setUserName] = useState("");
@@ -12,7 +13,7 @@ const Dashboard = () => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://172.174.98.154:5000/api/user/me", {
+        const res = await axios.get(API.GET_USER_PROFILE, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { IoClose } from "react-icons/io5";
+import API from "../api/config";
 
 const statusOptions = ["Active", "Inactive", "On Leave"];
 const contractTypes = ["1099", "W2", "Intern"];
@@ -41,8 +42,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `http://172.174.98.154:5000/api/employees/${formData.emp_id}`,
+      const res = await axios.put(API.GET_EMPLOYEE_BY_ID(empId),
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -61,8 +61,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(
-        `http://172.174.98.154:5000/api/employees/${formData.emp_id}`,
+      await axios.delete(API.GET_EMPLOYEE_BY_ID(formData.emp_id),
         {
           headers: { Authorization: `Bearer ${token}` },
         }

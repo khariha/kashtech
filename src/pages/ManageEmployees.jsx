@@ -3,6 +3,7 @@ import axios from "axios";
 import { FaEdit, FaSearch, FaPlus } from "react-icons/fa";
 import EditEmployee from "../components/EditEmployee";
 import AddEmployee from "../components/AddEmployee"; // 🆕 new component
+import API from "../api/config";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,7 +23,7 @@ const ManageEmployees = () => {
     const fetchEmployees = async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get("http://172.174.98.154:5000/api/employees", {
+            const res = await axios.get(API.FETCH_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setEmployees(res.data);

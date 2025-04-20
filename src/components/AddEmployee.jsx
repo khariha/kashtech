@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API from "../api/config";
 
 const contractTypes = ["1099", "W2", "Intern"];
 const statusOptions = ["Active", "Inactive", "On Leave"];
@@ -62,7 +63,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
                 return;
             }
 
-            const res = await axios.post("http://172.174.98.154:5000/api/employees", formData, {
+            const res = await axios.post(API.FETCH_ALL_EMPLOYEES, formData, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
