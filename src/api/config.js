@@ -1,5 +1,5 @@
 // src/api/config.js
-const BASE_URL = "http://172.174.98.154/:5000/api";
+const BASE_URL = "http://172.174.98.154:5000/api";
 
 const API = {
   TIMESHEET_REPORT: `${BASE_URL}/timesheet/report`,
