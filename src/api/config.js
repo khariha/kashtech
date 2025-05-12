@@ -1,4 +1,4 @@
-const BASE_URL = "http://172.174.98.154:3000/api";
+const BASE_URL = "http://172.174.98.154:5000/api";
 
 const API = {
   // 🔐 Auth
