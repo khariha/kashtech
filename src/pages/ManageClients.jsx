@@ -60,8 +60,9 @@ const ManageClients = () => {
     });
 
     const filteredClients = sortedClients.filter((c) =>
-        c.company_name.toLowerCase().includes(search.toLowerCase())
-    );
+        c?.company_name?.toLowerCase().includes(search?.toLowerCase() || "")
+      );
+      
 
     const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
     const paginatedClients = filteredClients.slice(
