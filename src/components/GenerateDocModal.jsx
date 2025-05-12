@@ -1,6 +1,5 @@
-// File: src/components/GenerateDocModal.jsx
-import React, { useState, useRef } from "react";
-import { FaTimes, FaDownload, FaMagic, FaSave } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaTimes, FaDownload, FaMagic } from "react-icons/fa";
 import axios from "axios";
 import { ClipLoader } from "react-spinners";
 import API from "../api/config";
@@ -8,71 +7,39 @@ import API from "../api/config";
 const GenerateDocModal = ({ client, docType, onClose }) => {
   const [services, setServices] = useState("Software Development, Integration");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState(new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(
+    new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split("T")[0]
+  );
   const [billingTerms, setBillingTerms] = useState("monthly hours logged");
   const [techStack, setTechStack] = useState("Java, React, PostgreSQL");
+
   const [instruction, setInstruction] = useState("");
   const [loading, setLoading] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [editedHtml, setEditedHtml] = useState("");
-  const previewRef = useRef(null);
 
   const token = localStorage.getItem("token");
-
-  const syncEditedHtml = () => {
-    const htmlContent = previewRef.current?.innerHTML;
-    if (htmlContent) {
-      setEditedHtml(htmlContent);
-      return htmlContent;
-    }
-    return editedHtml;
-  };
-
-  const saveEditedToDB = async (htmlContent) => {
-    await axios.post(API.SAVE_EDITED_DOC, {
-      clientId: client.company_id,
-      editedHtml: htmlContent,
-      metaFields: {
-        companyName: client.company_name,
-        industry: client.industry,
-        services,
-        startDate,
-        endDate,
-        techStack,
-        billingTerms,
-        clientContact: "Fred Bond",
-        clientEmail: "client@example.com",
-        clientPhone: "555-555-1234",
-        kasTechContact: "Kamesh Gopalan",
-        kasTechEmail: "kamesh@kashtechllc.com",
-        kasTechPhone: "847-445-3064",
-        engagementModel: "T&M",
-        estimatedDuration: "6 months"
-      }
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-  };
 
   const handleGenerate = async () => {
     if (!token) return alert("⚠️ Please login again. Missing token.");
     setLoading(true);
     try {
-      const res = await axios.post(API.OPENAI_GENERATE_SOW_HTML, {
-        companyName: client.company_name,
-        industry: client.industry,
-        services,
-        startDate,
-        endDate,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(
+        API.OPENAI_GENERATE_SOW_HTML,
+        {
+          companyName: client.company_name,
+          industry: client.industry,
+          services,
+          startDate,
+          endDate,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       const html = res.data?.previewHtml;
       if (html) {
         setPreviewHtml(html);
         setEditedHtml(html);
-        await saveEditedToDB(html);
         alert("✅ Preview generated!");
       } else {
         alert("⚠️ Empty preview received");
@@ -89,19 +56,30 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
     if (!instruction.trim() || !editedHtml) return;
     setLoading(true);
     try {
-      const res = await axios.post(API.OPENAI_EDIT_DOC, {
-        originalContent: editedHtml,
-        instruction,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(
+        API.OPENAI_EDIT_DOC,
+        {
+          originalContent: editedHtml,
+          instruction,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       const newHtml = res.data.content || "";
       setEditedHtml(newHtml);
       setPreviewHtml(newHtml);
       setInstruction("");
 
-      await saveEditedToDB(newHtml);
+      // 🔁 Soft sync editable fields from HTML
+      const serviceMatch = newHtml.match(/(?:Services|Scope).*?:<\/?[a-z]*[^>]*>\s*([^<]{3,})<\/?/i);
+      if (serviceMatch?.[1]) setServices(serviceMatch[1].trim());
+
+      const billingMatch = newHtml.match(/billed based on\s*([^<]+)/i);
+      if (billingMatch?.[1]) setBillingTerms(billingMatch[1].trim());
+
+      const techStackMatch = newHtml.match(/Tech Stack.*?:?\s*<\/?[a-z]*[^>]*>\s*([^<]{3,})<\/?/i);
+      if (techStackMatch?.[1]) setTechStack(techStackMatch[1].trim());
+
     } catch (err) {
       alert("Error applying edit command");
       console.error(err);
@@ -110,22 +88,32 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
     }
   };
 
-  const handleManualSave = async () => {
-    const updatedHtml = syncEditedHtml();
-    await saveEditedToDB(updatedHtml);
-    alert("✅ Manual changes saved!");
-  };
-
   const handleDownload = async () => {
-    const updatedHtml = syncEditedHtml();
-    await saveEditedToDB(updatedHtml);
+    if (!token) return alert("⚠️ Session expired. Please login.");
+
+    setLoading(true);
     try {
-      const res = await axios.get(`${API.OPENAI_DOWNLOAD_DOCX_DOWNLOAD}?clientId=${client.company_id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "blob"
+      const res = await axios.post(
+        API.OPENAI_DOWNLOAD_DOCX,
+        {
+          companyName: client.company_name,
+          industry: client.industry,
+          services,
+          startDate,
+          endDate,
+          billingTerms,
+          techStack,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      const blob = new Blob([res.data], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      const blob = new Blob([res.data], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -135,7 +123,9 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
       link.remove();
     } catch (err) {
       console.error("❌ Download failed", err);
-      alert("Download failed.");
+      alert("Download failed. Please verify all fields.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -170,7 +160,6 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
 
         <h3 className="text-md font-semibold mb-2">Preview Document</h3>
         <div
-          ref={previewRef}
           className="prose max-w-none bg-white p-4 rounded border overflow-auto max-h-[400px]"
           contentEditable
           dangerouslySetInnerHTML={{ __html: previewHtml }}
@@ -185,9 +174,6 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
           />
           <button onClick={handleInstructionEdit} className="bg-purple-600 text-white px-4 py-2 rounded">
             <FaMagic className="inline-block mr-1" /> Apply
-          </button>
-          <button onClick={handleManualSave} className="bg-yellow-500 text-white px-4 py-2 rounded">
-            <FaSave className="inline-block mr-1" /> Save Changes
           </button>
         </div>
 
