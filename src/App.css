@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* TipTap editor */
+.ProseMirror {
+  min-height: 300px;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  outline: none;
+}

@@ -1,8 +1,8 @@
 import React from "react";
-import { useNavigate } from "react-router-dom"; // ✅ Import navigate
+import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { addDays, format, isWithinInterval } from "date-fns";
+import { format, addDays, isWithinInterval } from "date-fns";
 
 const TimesheetHeader = ({
   userRole,
@@ -16,20 +16,23 @@ const TimesheetHeader = ({
   showTimesheetFields,
   setShowTimesheetFields,
 }) => {
-  const navigate = useNavigate(); // ✅ Initialize navigate
+  const navigate = useNavigate();
 
+  // ✅ When user selects a date, adjust to nearest Monday
   const handleDateSelect = (date) => {
     const selected = new Date(date);
     const monday = new Date(selected.setDate(selected.getDate() - ((selected.getDay() + 6) % 7)));
     setWeekStartDate(monday);
   };
 
+  // ✅ Format selected week for display
   const getWeekRange = () => {
     if (!weekStartDate) return "";
     const end = addDays(weekStartDate, 6);
     return `${format(weekStartDate, "MMM d")} - ${format(end, "MMM d")}`;
   };
 
+  // ✅ Highlight selected week in calendar
   const isDateInWeek = (date) => {
     if (!weekStartDate) return false;
     return isWithinInterval(date, {
@@ -40,27 +43,23 @@ const TimesheetHeader = ({
 
   return (
     <div className="flex flex-wrap gap-4 items-end">
-      {/* Employee Name Dropdown */}
+      {/* Employee Dropdown */}
       <div className="flex flex-col text-sm">
         <label className="mb-1 font-medium">*Employee Name</label>
         <select
           value={employee}
-          onChange={(e) => setEmployee(e.target.value)}
+          onChange={(e) => setEmployee(parseInt(e.target.value))}
           disabled={userRole === "Basic" || userRole === "Basic User"}
           className="border rounded px-3 py-2 min-w-[200px]"
         >
-          {userRole === "Basic" || userRole === "Basic User" ? (
-            <option>{employee}</option>
-          ) : (
-            <>
-              <option value="">Select Employee</option>
-              {employeeOptions.map((emp) => (
-                <option key={emp.emp_id} value={emp.full_name}>
-                  {emp.full_name}
-                </option>
-              ))}
-            </>
-          )}
+          <option value="">Select Employee</option>
+          {employeeOptions
+            .sort((a, b) => a.full_name.localeCompare(b.full_name))
+            .map((emp) => (
+              <option key={emp.emp_id} value={emp.emp_id}>
+                {emp.full_name}
+              </option>
+            ))}
         </select>
       </div>
 
@@ -80,6 +79,7 @@ const TimesheetHeader = ({
               <div className="uppercase text-xs">Selected Week</div>
               <div className="font-medium">{getWeekRange()}</div>
             </div>
+
             <DatePicker
               selected={weekStartDate}
               onChange={handleDateSelect}
@@ -89,6 +89,7 @@ const TimesheetHeader = ({
                 isDateInWeek(date) ? "react-datepicker__day--highlighted-week" : undefined
               }
             />
+
             <div className="flex justify-end px-3 py-2 border-t">
               <button
                 onClick={() => setCalendarOpen(false)}
@@ -110,13 +111,21 @@ const TimesheetHeader = ({
         )}
       </div>
 
-      {/* View Report Button - Only for Admin and Super Admin */}
+      {/* View Report Button (Admin/Super Admin Only) */}
       {(userRole === "Admin" || userRole === "Super Admin") && (
         <button
           onClick={() => navigate("/timesheet-report")}
           className="ml-auto border text-purple-700 px-4 py-2 rounded hover:bg-purple-50 text-sm"
         >
-          View Report
+          View Report by Weekly Hours
+        </button>
+      )}
+          {(userRole === "Admin" || userRole === "Super Admin") && (
+        <button
+          onClick={() => navigate("/timesheet-hours-report")}
+          className="ml-auto border text-purple-700 px-4 py-2 rounded hover:bg-purple-50 text-sm"
+        >
+          View Report by Total Hours
         </button>
       )}
     </div>

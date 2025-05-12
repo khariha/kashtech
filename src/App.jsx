@@ -23,6 +23,7 @@ import Header from "./components/Header";
 import { SearchProvider } from "./context/SearchContext";
 import { useTheme } from "./context/ThemeContext";
 import TimesheetReport from "./pages/TimesheetReport";
+import TimesheetHoursReport from "./pages/TimesheetHoursReport";
 
 const AppLayout = ({ children }) => {
   const { theme } = useTheme();
@@ -70,7 +71,7 @@ const AppRoutes = () => {
       <Route path="/manage-employees" element={renderProtectedPage(["Admin", "Super Admin"], ManageEmployees)} />
       <Route path="/manage-clients" element={renderProtectedPage(["Admin", "Super Admin"], ManageClients)} />
       <Route path="/timesheet-report" element={renderProtectedPage(["Admin", "Super Admin"], TimesheetReport)} />
-
+      <Route path="/timesheet-hours-report" element={renderProtectedPage(["Admin", "Super Admin"], TimesheetHoursReport)} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />

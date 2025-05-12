@@ -22,7 +22,8 @@ module.exports = {
     },
   },
   plugins: [
-    require("@tailwindcss/forms"), // Enables better form field styling
+    require("@tailwindcss/forms"),
+    require("@tailwindcss/typography"), // ✅ this one
     plugin(function ({ addComponents }) {
       addComponents({
         ".input": {
