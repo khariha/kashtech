@@ -18,6 +18,8 @@ const API = {
   DELETE_TIMESHEET_ENTRY_BY_ID: (id) => `${BASE_URL}/timesheet/delete-entry-by-id/${id}`,
   GET_TIMESHEET_BY_WEEK: (empId, weekStartDate) =>
     `${BASE_URL}/timesheet/week/${empId}/${weekStartDate}`,
+  GET_CLIENTS_BY_BILLABLE: (billable) => `${BASE_URL}/timesheet/companies?billable=${billable}`,
+  GET_PROJECTS_BY_COMPANY: (companyId) => `${BASE_URL}/timesheet/projects/${companyId}`,
 
   // 🏢 Company & Project Management
   FETCH_MANAGE_CLIENTS: `${BASE_URL}/manageclients`,
@@ -50,16 +52,21 @@ const API = {
   AVG_HOURS_BILLED: `${BASE_URL}/metrics/avg-hours-billed`,
 
   // 🧠 OpenAI (SOW Generation)
-  OPENAI_GENERATE_SOW: `${BASE_URL}/openai/generate-sow`, // ✅ new entry (optional if you want)
+
   OPENAI_GENERATE_SOW_HTML: `${BASE_URL}/openai/generate-preview-doc`,
   OPENAI_EDIT_DOC: `${BASE_URL}/openai/edit-doc`,
-  OPENAI_DOWNLOAD_DOCX: `${BASE_URL}/openai/generate-doc-from-template`,
-  SAVE_EDITED_DOC: `${BASE_URL}/openai/save-edited-doc`,
-  OPENAI_DOWNLOAD_FROM_HTML: `${BASE_URL}/openai/download-from-html`,
-  OPENAI_DOWNLOAD_TEMPLATE_DOC: `${BASE_URL}/openai/download-template-filled-doc`,
-  OPENAI_DOWNLOAD_EDITED_DOC: `${BASE_URL}/openai/download-edited-doc`,
-  OPENAI_DOWNLOAD_DOCX_DOWNLOAD: `${BASE_URL}/openai/generate-doc-from-template-download`,
-  
+  OPENAI_SAVE_FINAL_DOC: `${BASE_URL}/openai/save-edited-doc`,
+  OPENAI_DOWNLOAD_FINAL_DOC: `${BASE_URL}/openai/download-edited-doc`,
+
+  OPENAI_GENERATE_MSA_HTML: `${BASE_URL}/openai/generate-preview-msa`,
+  OPENAI_SAVE_MSA_DOC: `${BASE_URL}/openai/save-edited-msa-doc`,
+  OPENAI_DOWNLOAD_MSA_DOC: `${BASE_URL}/openai/download-edited-msa-doc`,
+
+  GET_ADMINS_BY_COMPANY: `${BASE_URL}/admins/company`,
+  ADD_COMPANY_ADMIN: `${BASE_URL}/admins/company/add`,
+  DELETE_COMPANY_ADMIN: `${BASE_URL}/admins/company`,
+  GET_ALL_COMPANY_ADMINS: `${BASE_URL}/admins/all-admins`,
+  FETCH_ADMIN_EMPLOYEES: `${BASE_URL}/admins/employees`,
 };
 
 export default API;

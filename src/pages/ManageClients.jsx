@@ -5,6 +5,7 @@ import EditClient from "../components/EditClient";
 import AddClient from "../components/AddClient";
 import ManageProjects from "../components/ManageProjects";
 import GenerateDocModal from "../components/GenerateDocModal";
+import ManageAdmins from "../components/ManageAdmins";
 import API from "../api/config";
 import { ClipLoader } from "react-spinners";
 
@@ -19,6 +20,7 @@ const ManageClients = () => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
     const [showAddModal, setShowAddModal] = useState(false);
     const [showProjectModal, setShowProjectModal] = useState(false);
+    const [showAdminModal, setShowAdminModal] = useState(false);
     const [selectedCompanyId, setSelectedCompanyId] = useState(null);
     const [selectedCompanyName, setSelectedCompanyName] = useState(null);
     const [loadingCompanyId, setLoadingCompanyId] = useState(null);
@@ -33,14 +35,43 @@ const ManageClients = () => {
     const fetchClients = async () => {
         try {
             const token = localStorage.getItem("token");
+
+            // ✅ 1. Get all clients
             const res = await axios.get(API.FETCH_MANAGE_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setClients(res.data);
+
+            // ✅ 2. Get all admins with full_name
+            const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            // ✅ 3. Create admin map by company_id
+            const adminMap = {};
+            for (const row of adminRes.data) {
+                if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
+                adminMap[row.company_id].push({
+                    usn: row.kash_operations_usn,
+                    role: row.role || "Admin",
+                    full_name: row.full_name || row.kash_operations_usn,
+                });
+            }
+
+            // ✅ 4. Enrich clients with admins
+            const enrichedClients = res.data.map((client) => ({
+                ...client,
+                admins: adminMap[client.company_id] || [],
+            }));
+
+            // ✅ 5. Set state
+            setClients(enrichedClients);
+
         } catch (err) {
-            console.error("Error fetching clients", err);
+            console.error("❌ Error fetching clients", err);
         }
     };
+
+
 
     const handleSort = (key) => {
         let direction = "asc";
@@ -55,14 +86,17 @@ const ManageClients = () => {
         const aVal = a[sortConfig.key] || "";
         const bVal = b[sortConfig.key] || "";
         return typeof aVal === "string"
-            ? (sortConfig.direction === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal))
-            : (sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal);
+            ? sortConfig.direction === "asc"
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal)
+            : sortConfig.direction === "asc"
+                ? aVal - bVal
+                : bVal - aVal;
     });
 
     const filteredClients = sortedClients.filter((c) =>
         c?.company_name?.toLowerCase().includes(search?.toLowerCase() || "")
-      );
-      
+    );
 
     const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
     const paginatedClients = filteredClients.slice(
@@ -76,12 +110,17 @@ const ManageClients = () => {
         setShowProjectModal(true);
     };
 
+    const handleManageAdmins = (companyId, companyName) => {
+        setSelectedCompanyId(companyId);
+        setSelectedCompanyName(companyName);
+        setShowAdminModal(true);
+    };
+
     const openGenerateModal = (client, type) => {
         setSelectedClient(client);
         setDocType(type);
         setShowGenerateModal(true);
     };
-
 
     return (
         <div className="p-6 relative">
@@ -177,18 +216,27 @@ const ManageClients = () => {
                                                         </p>
                                                     </div>
                                                     <div className="col-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
-                                                        <h4 className="font-semibold mb-2 text-purple-900 dark:text-white">Admins</h4>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <h4 className="font-semibold text-purple-900 dark:text-white">Admins</h4>
+                                                            <button
+                                                                onClick={() => handleManageAdmins(client.company_id, client.company_name)}
+                                                                className="text-xs bg-purple-800 text-white px-3 py-1 rounded-full hover:bg-purple-900"
+                                                            >
+                                                                Manage Admins
+                                                            </button>
+                                                        </div>
                                                         {client.admins?.length ? (
                                                             <div className="flex flex-wrap gap-2">
                                                                 {client.admins.map((admin, idx) => (
                                                                     <span key={idx} className="px-3 py-1 bg-purple-200 text-purple-900 rounded-full text-xs">
-                                                                        {admin}
+                                                                        {admin.full_name}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         ) : (
                                                             <p className="text-gray-500">N/A</p>
                                                         )}
+
                                                     </div>
                                                     <div className="col-span-2 bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
                                                         <div className="flex justify-between items-center mb-2">
@@ -202,11 +250,23 @@ const ManageClients = () => {
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
                                                             {client.projects?.length ? client.projects.map((proj, idx) => (
-                                                                <span key={idx} className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-full">
-                                                                    {proj}
+                                                                <span
+                                                                    key={idx}
+                                                                    className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
+                                                                            ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
+                                                                            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                        }`}
+                                                                >
+                                                                    {proj.name}
                                                                 </span>
-                                                            )) : <p className="text-gray-500">No Projects</p>}
+                                                            )) : (
+                                                                <p className="text-gray-500">No Projects</p>
+                                                            )}
+
+
+
                                                         </div>
+
                                                     </div>
                                                 </div>
                                             </td>
@@ -256,9 +316,25 @@ const ManageClients = () => {
                 <ManageProjects
                     companyId={selectedCompanyId}
                     companyName={selectedCompanyName}
-                    onClose={() => setShowProjectModal(false)}
+                    onClose={() => {
+                        setShowProjectModal(false);
+                        fetchClients(); // ✅ Refresh grid after modal closes
+                    }}
                 />
             )}
+
+
+            {showAdminModal && (
+                <ManageAdmins
+                    companyId={selectedCompanyId}
+                    companyName={selectedCompanyName}
+                    onClose={() => {
+                        setShowAdminModal(false);
+                        fetchClients(); // ✅ Refresh grid when modal closes
+                    }}
+                />
+            )}
+
 
             {showGenerateModal && selectedClient && (
                 <GenerateDocModal
@@ -267,7 +343,6 @@ const ManageClients = () => {
                     onClose={() => setShowGenerateModal(false)}
                 />
             )}
-
         </div>
     );
 };

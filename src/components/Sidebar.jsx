@@ -34,13 +34,13 @@ const allMenuItems = [
     icon: FaCalendarAlt,
     route: "/manage-timesheet",
     label: "Manage Timesheet",
-    roles: ["Admin", "Super Admin", "Basic"]
+    roles: ["Admin", "Super Admin", "Basic User"]
   },
   {
     icon: FaUserCircle,
     route: "/employee-dashboard",
     label: "Employee Dashboard",
-    roles: ["Basic"]
+    roles: ["Basic User"]
   },
   {
     icon: FaFileAlt,

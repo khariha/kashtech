@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FaTimes, FaDownload, FaMagic } from "react-icons/fa";
 import axios from "axios";
 import { ClipLoader } from "react-spinners";
@@ -18,14 +18,17 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
   const [previewHtml, setPreviewHtml] = useState("");
   const [editedHtml, setEditedHtml] = useState("");
 
+  const previewRef = useRef();
   const token = localStorage.getItem("token");
+
+  const isMSA = docType === "MSA";
 
   const handleGenerate = async () => {
     if (!token) return alert("⚠️ Please login again. Missing token.");
     setLoading(true);
     try {
       const res = await axios.post(
-        API.OPENAI_GENERATE_SOW_HTML,
+        isMSA ? API.OPENAI_GENERATE_MSA_HTML : API.OPENAI_GENERATE_SOW_HTML,
         {
           companyName: client.company_name,
           industry: client.industry,
@@ -40,12 +43,12 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
       if (html) {
         setPreviewHtml(html);
         setEditedHtml(html);
-        alert("✅ Preview generated!");
+        alert(`✅ ${docType} preview generated!`);
       } else {
         alert("⚠️ Empty preview received");
       }
     } catch (err) {
-      console.error("❌ Preview generation failed", err);
+      console.error(`❌ ${docType} preview generation failed`, err);
       alert("Preview generation failed.");
     } finally {
       setLoading(false);
@@ -70,7 +73,7 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
       setPreviewHtml(newHtml);
       setInstruction("");
 
-      // 🔁 Soft sync editable fields from HTML
+      // Sync editable field updates
       const serviceMatch = newHtml.match(/(?:Services|Scope).*?:<\/?[a-z]*[^>]*>\s*([^<]{3,})<\/?/i);
       if (serviceMatch?.[1]) setServices(serviceMatch[1].trim());
 
@@ -88,22 +91,48 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
     }
   };
 
-  const handleDownload = async () => {
-    if (!token) return alert("⚠️ Session expired. Please login.");
+  const handleSaveAndDownload = async () => {
+    if (!token || !client?.company_id) {
+      return alert("Missing required fields or token");
+    }
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        API.OPENAI_DOWNLOAD_DOCX,
+      const updatedHtml = previewRef.current?.innerHTML || editedHtml;
+      setEditedHtml(updatedHtml);
+
+      const meta = {
+        services,
+        techStack,
+        billingTerms,
+        startDate,
+        endDate,
+        companyName: client.company_name,
+        industry: client.industry,
+      };
+
+      const docTypeValue = isMSA ? "MSA" : "SOW";
+
+      const saveApi = isMSA ? API.OPENAI_SAVE_MSA_DOC : API.OPENAI_SAVE_FINAL_DOC;
+      const downloadApi = isMSA ? API.OPENAI_DOWNLOAD_MSA_DOC : API.OPENAI_DOWNLOAD_FINAL_DOC;
+
+      // Save document with doc_type
+      const saveRes = await axios.post(
+        saveApi,
         {
-          companyName: client.company_name,
-          industry: client.industry,
-          services,
-          startDate,
-          endDate,
-          billingTerms,
-          techStack,
+          clientId: client.company_id,
+          editedHtml: updatedHtml,
+          metaFields: meta,
+          doc_type: docType, // ✅ Critical
         },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+
+
+      // Download document
+      const res = await axios.get(
+        `${downloadApi}?clientId=${client.company_id}&docType=${docTypeValue}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -117,17 +146,18 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `SOW_${client.company_name.replace(/\s+/g, "_")}.docx`;
-      document.body.appendChild(link);
+      link.download = `${docTypeValue}_${client.company_name.replace(/\s+/g, "_")}.docx`;
       link.click();
       link.remove();
     } catch (err) {
-      console.error("❌ Download failed", err);
-      alert("Download failed. Please verify all fields.");
+      console.error(`❌ Save/Download failed for ${docType}`, err.response?.data || err);
+      alert(`Download failed for ${docType}`);
     } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
@@ -160,8 +190,10 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
 
         <h3 className="text-md font-semibold mb-2">Preview Document</h3>
         <div
+          ref={previewRef}
           className="prose max-w-none bg-white p-4 rounded border overflow-auto max-h-[400px]"
           contentEditable
+          suppressContentEditableWarning={true}
           dangerouslySetInnerHTML={{ __html: previewHtml }}
         ></div>
 
@@ -177,8 +209,8 @@ const GenerateDocModal = ({ client, docType, onClose }) => {
           </button>
         </div>
 
-        <button onClick={handleDownload} className="bg-blue-600 text-white px-4 py-2 rounded">
-          <FaDownload className="inline-block mr-1" /> Download .docx
+        <button onClick={handleSaveAndDownload} className="bg-blue-600 text-white px-4 py-2 rounded">
+          <FaDownload className="inline-block mr-1" /> Save & Download
         </button>
       </div>
     </div>
