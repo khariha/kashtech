@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import API from "../api/config";
 
-const TimesheetReport = () => {
+const DailyTimesheetReport = () => {
     const [reportData, setReportData] = useState([]);
     const [expandedRows, setExpandedRows] = useState([]);
     const [visibleNotes, setVisibleNotes] = useState([]);
@@ -19,6 +19,7 @@ const TimesheetReport = () => {
     const [filterOption, setFilterOption] = useState("monthToDate");
     const [customStartDate, setCustomStartDate] = useState(null);
     const [customEndDate, setCustomEndDate] = useState(null);
+    const [selectedType, setSelectedType] = useState("");
 
     const [selectedClients, setSelectedClients] = useState([]);
     const [selectedProjects, setSelectedProjects] = useState([]);
@@ -38,7 +39,7 @@ const TimesheetReport = () => {
 
     const fetchReport = async (customParams = {}) => {
         try {
-            let url = API.TIMESHEET_REPORT;
+            let url = API.TIMESHEET_DAILY_REPORT;
             let params = {};
 
             if (filterOption === "monthToDate") {
@@ -176,32 +177,28 @@ const TimesheetReport = () => {
     const currentData = sortedData.slice(indexOfFirst, indexOfLast);
     const totalPages = Math.ceil(sortedData.length / itemsPerPage);
 
-    const handleExportExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(reportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Timesheet");
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-        saveAs(new Blob([excelBuffer]), "timesheet_report.xlsx");
-    };
 
     useEffect(() => {
         const fetchDropdownData = async () => {
             try {
                 const token = localStorage.getItem("token");
 
-                const [clientsRes, projectsRes, employeesRes] = await Promise.all([
+                const [clientsRes, employeesRes] = await Promise.all([
                     axios.get(API.GET_ALL_CLIENTS, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(API.GET_ALL_PROJECTS, { headers: { Authorization: `Bearer ${token}` } }),
                     axios.get(API.GET_ALL_EMPLOYEES, { headers: { Authorization: `Bearer ${token}` } }),
                 ]);
 
                 setClientList(clientsRes.data);
-                setProjectList(projectsRes.data);
                 setEmployeeList(employeesRes.data);
+
+                // ❌ DO NOT pre-fetch all projects — only fetch when a client is selected
+                // setProjectList([]); // optional to reset project list initially
+
             } catch (err) {
                 console.error("❌ Error loading dropdown data", err);
             }
         };
+
 
         fetchDropdownData();
     }, []);
@@ -211,11 +208,20 @@ const TimesheetReport = () => {
             const res = await axios.get("/api/timesheet/companies?billable=true", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setClientList(res.data);
+
+            if (Array.isArray(res.data)) {
+                setClientList(res.data);
+            } else {
+                console.warn("⚠️ Unexpected response:", res.data);
+                setClientList([]);
+            }
         } catch (err) {
             console.error("❌ Error fetching clients", err);
+            setClientList([]);
         }
     };
+
+
 
     const fetchEmployeeList = async () => {
         try {
@@ -229,13 +235,32 @@ const TimesheetReport = () => {
     };
 
     const fetchProjectList = async (companyId) => {
+        if (!companyId) return;
+
         try {
-            const res = await axios.get(`/api/timesheet/projects/${companyId}`, {
+            const res = await axios.get(API.GET_PROJECTS_BY_COMPANY(companyId), {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setProjectList(res.data);
+
+            const sortedProjects = [...res.data].sort((a, b) =>
+                a.project_category.localeCompare(b.project_category)
+            );
+            setProjectList(sortedProjects);
         } catch (err) {
             console.error("❌ Error fetching projects", err);
+        }
+    };
+
+
+    // Dropdown onChange updated to use API constant
+    const handleClientChange = async (e) => {
+        const selectedClient = e.target.value;
+        setSelectedClients((prev) => [...prev, selectedClient]);
+
+        const selectedObj = clientList.find((c) => c.company_name === selectedClient);
+        if (selectedObj?.company_id) {
+            setSelectedCompanyId(selectedObj.company_id);
+            await fetchProjectList(selectedObj.company_id);
         }
     };
     useEffect(() => {
@@ -275,6 +300,121 @@ const TimesheetReport = () => {
 
         fetchInitialLists();
     }, [isBillable, isNonBillable]);
+
+
+    // ✅ UPDATED FRONTEND FUNCTION
+    const handleExportDailyExcel = async () => {
+        try {
+            const params = {};
+
+            if (filterOption === "monthToDate") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(now, "yyyy-MM-dd");
+            } else if (filterOption === "lastMonth") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const end = new Date(now.getFullYear(), now.getMonth(), 0);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(end, "yyyy-MM-dd");
+            } else if (filterOption === "customRange" && customStartDate && customEndDate) {
+                params.startDate = format(customStartDate, "yyyy-MM-dd");
+                params.endDate = format(customEndDate, "yyyy-MM-dd");
+            } else {
+                alert("Please select a valid date range.");
+                return;
+            }
+
+            // Optional employee filter
+            if (selectedEmployees.length > 0) {
+                params.emp_ids = selectedEmployees
+                    .map((name) =>
+                        employeeList.find((emp) => `${emp.first_name} ${emp.last_name}` === name)?.emp_id
+                    )
+                    .filter(Boolean)
+                    .join(",");
+            }
+
+            console.log("📤 Export Params:", params);
+
+            const res = await axios.get(API.TIMESHEET_DAILY_HOURS_REPORT, {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
+            });
+
+            if (!res.data || res.data.length === 0) {
+                alert("No data available for the selected date range.");
+                return;
+            }
+
+            const sorted = res.data.sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+            const worksheet = XLSX.utils.json_to_sheet(sorted);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Timesheet");
+
+            const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+            saveAs(new Blob([excelBuffer]), "daily_timesheet_report.xlsx");
+        } catch (err) {
+            console.error("❌ Failed to export daily Excel", err);
+        }
+    };
+
+
+    const handleExportCSV = async () => {
+        try {
+            const params = {};
+
+            // Apply date filters
+            if (filterOption === "monthToDate") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(now, "yyyy-MM-dd");
+            } else if (filterOption === "lastMonth") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const end = new Date(now.getFullYear(), now.getMonth(), 0);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(end, "yyyy-MM-dd");
+            } else if (filterOption === "customRange" && customStartDate && customEndDate) {
+                params.startDate = format(customStartDate, "yyyy-MM-dd");
+                params.endDate = format(customEndDate, "yyyy-MM-dd");
+            } else {
+                alert("Please select a valid date range.");
+                return;
+            }
+
+            // Add employee filter
+            if (selectedEmployees.length > 0) {
+                params.emp_ids = selectedEmployees
+                    .map(name => employeeList.find(emp => `${emp.first_name} ${emp.last_name}` === name)?.emp_id)
+                    .filter(Boolean)
+                    .join(",");
+            }
+
+            const res = await axios.get(API.TIMESHEET_DAILY_HOURS_REPORT, {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
+            });
+
+            if (!res.data || res.data.length === 0) {
+                alert("No data available for the selected filters.");
+                return;
+            }
+
+            const csvContent = [
+                Object.keys(res.data[0]).join(","), // CSV Header
+                ...res.data.map(row => Object.values(row).map(val => `"${val}"`).join(","))
+            ].join("\n");
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            saveAs(blob, "daily_timesheet_report.csv");
+        } catch (err) {
+            console.error("❌ Failed to export CSV:", err);
+        }
+    };
+
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-white px-6 py-6">
@@ -361,37 +501,45 @@ const TimesheetReport = () => {
                                             className="w-full border px-2 py-1 text-sm rounded"
                                             onChange={async (e) => {
                                                 const selectedClient = e.target.value;
+                                                if (!selectedClient || selectedClients.includes(selectedClient)) return;
+
                                                 setSelectedClients([...selectedClients, selectedClient]);
 
-                                                const selectedObj = clientList.find(c => c.company_name === selectedClient);
+                                                const selectedObj = clientList.find(
+                                                    (c) => c.company_name === selectedClient
+                                                );
+
                                                 if (selectedObj?.company_id) {
-                                                    setSelectedCompanyId(selectedObj.company_id);
+                                                    const companyId = selectedObj.company_id;
+                                                    setSelectedCompanyId(companyId);
 
                                                     try {
-                                                        const projRes = await axios.get(
-                                                            API.GET_PROJECTS_BY_COMPANY(selectedObj.company_id),
-                                                            {
-                                                                headers: { Authorization: `Bearer ${token}` },
-                                                            }
-                                                        );
-                                                        const sortedProjects = [...projRes.data].sort((a, b) =>
+                                                        const projectsRes = await axios.get(API.GET_PROJECTS_BY_COMPANY(companyId), {
+                                                            headers: { Authorization: `Bearer ${token}` },
+                                                        });
+
+                                                        const sortedProjects = [...projectsRes.data].sort((a, b) =>
                                                             a.project_category.localeCompare(b.project_category)
                                                         );
+
                                                         setProjectList(sortedProjects);
                                                     } catch (err) {
                                                         console.error("❌ Error fetching projects", err);
                                                     }
                                                 }
                                             }}
-
                                         >
                                             <option value="">Select Client</option>
-                                            {clientList.map((client) => (
-                                                <option key={client.company_id} value={client.company_name}>
-                                                    {client.company_name}
-                                                </option>
-                                            ))}
+                                            {Array.isArray(clientList) &&
+                                                clientList.map((client) => (
+                                                    <option key={client.company_id} value={client.company_name}>
+                                                        {client.company_name}
+                                                    </option>
+                                                ))}
+
                                         </select>
+
+
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedClients.map((client, idx) => (
                                                 <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded-full">
@@ -482,19 +630,20 @@ const TimesheetReport = () => {
                 </div>
 
                 <div className="flex gap-2 mt-4 md:mt-0">
-                    <CSVLink
-                        data={reportData}
-                        filename="timesheet_report.csv"
+                    <button
+                        onClick={handleExportCSV}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export CSV
-                    </CSVLink>
+                    </button>
+
                     <button
-                        onClick={handleExportExcel}
+                        onClick={handleExportDailyExcel}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export Excel
                     </button>
+
                     <button
                         onClick={() => navigate("/manage-timesheet")}
                         className="bg-[#F97316] hover:bg-[#ea670a] text-white font-bold py-2 px-5 rounded-full text-sm shadow-sm transition-all"
@@ -662,4 +811,4 @@ const TimesheetReport = () => {
     );
 };
 
-export default TimesheetReport;
+export default DailyTimesheetReport;

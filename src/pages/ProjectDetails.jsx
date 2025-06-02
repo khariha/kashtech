@@ -5,172 +5,95 @@ import API from "../api/config";
 
 const ProjectDetails = () => {
     const { sowId } = useParams();
-    const [project, setProject] = useState(null);
-    const [tasks, setTasks] = useState([]);
-    const [employees, setEmployees] = useState([]);
-
-    const getColorByIndex = (index) => {
-        const colors = [
-            "#2e1065", "#5b21b6", "#7e22ce", "#9333ea", "#a855f7",
-            "#c084fc", "#d8b4fe", "#e9d5ff", "#ede9fe", "#f3e8ff"
-        ];
-        return colors[index % colors.length];
-    };
+    const [roleBreakdown, setRoleBreakdown] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProject = async () => {
+        const fetchRoleBreakdown = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(API.FETCH_PROJECT_DETAILS(sowId), {
+                const res = await axios.get(`/api/projects/${sowId}/role-breakdown`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setProject(res.data);
+                setRoleBreakdown(res.data);
             } catch (err) {
-                console.error("❌ Failed to fetch project details", err);
+                console.error("Failed to fetch role breakdown", err);
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchProject();
+        fetchRoleBreakdown();
     }, [sowId]);
 
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await axios.get(API.FETCH_TASKS_BY_PROJECT(sowId), {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setTasks(res.data);
-            } catch (err) {
-                console.error("❌ Failed to fetch task breakdown", err);
-            }
-        };
-
-        fetchTasks();
-    }, [sowId]);
-
-    useEffect(() => {
-        const fetchEmployees = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await axios.get(API.FETCH_EMPLOYEES_BY_PROJECT(sowId), {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setEmployees(res.data);
-            } catch (err) {
-                console.error("❌ Failed to fetch employee breakdown", err);
-            }
-        };
-
-        fetchEmployees();
-    }, [sowId]);
-
-    const projectedHours = project?.total_projected_hours || 1;
-
-    if (!project) {
-        return <p className="text-center text-gray-500 mt-10">Loading project details...</p>;
-    }
+    const groupedByRole = roleBreakdown.reduce((acc, curr) => {
+        const key = curr.role_name;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(curr);
+        return acc;
+    }, {});
 
     return (
         <div className="px-6 py-4">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h1 className="text-4xl font-bold text-purple-900">{project.project_category}</h1>
-                    <p className="text-xl text-gray-500">{project.company_name}</p>
-                    <div className="mt-2">
-                        <select className="border border-gray-300 rounded px-3 py-1">
-                            <option>Month to Date</option>
-                        </select>
-                    </div>
+                    <h1 className="text-3xl font-bold text-purple-800">Role-wise Breakdown</h1>
                 </div>
-                <button
-                    style={{
-                        border: '1px solid #a855f7', // Fallback border color (Tailwind's purple-400)
-                        padding: '6px 20px',
-                        borderRadius: '9999px',
-                        color: '#6b21a8',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                    }}
-                >
+                <button className="border border-purple-400 px-4 py-1 rounded-full text-purple-700 font-medium text-sm">
                     Create a Report
                 </button>
-
-
             </div>
 
-            {/* Breakdown of Tasks */}
-            {tasks.length > 0 && (
-                <div className="bg-white dark:bg-[#f8f8f8] rounded-xl p-6 shadow border border-gray-200 mb-6 mt-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Breakdown of Tasks</h3>
-                    <div className="flex items-center h-8 rounded-full overflow-hidden">
-                        {tasks.map((task, idx) => (
-                            <div
-                                key={idx}
-                                className="flex items-center justify-center text-white text-xs font-semibold"
-                                style={{
-                                    width: `${task.percent_complete}%`,
-                                    backgroundColor: getColorByIndex(idx),
-                                    borderRadius:
-                                        idx === 0
-                                            ? "9999px 0 0 9999px"
-                                            : idx === tasks.length - 1
-                                                ? "0 9999px 9999px 0"
-                                                : "0",
-                                }}
-                            >
-                                {task.percent_complete}%
-                            </div>
-                        ))}
-                    </div>
+            {loading ? (
+                <p className="text-center text-gray-500">Loading...</p>
+            ) : Object.keys(groupedByRole).length === 0 ? (
+                <p className="bg-white p-6 rounded-lg shadow text-gray-600 text-center">No role assignments found.</p>
+            ) : (
+                Object.entries(groupedByRole).map(([role, users], idx) => (
+                    <div
+                        key={idx}
+                        className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow mb-6"
+                    >
+                        <h2 className="text-md font-bold text-gray-700 dark:text-white mb-4">{role} Breakdown</h2>
+                        <div className="space-y-4">
+                            {users.map((user, uIdx) => {
+                                const assigned = parseFloat(user.assigned_hours || 0);
+                                const utilized = parseFloat(user.utilized_hours || 0);
+                                const usedPercent = Math.min((utilized / assigned) * 100, 100);
 
-                    <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700">
-                        {tasks.map((task, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                                <span
-                                    className="w-3 h-3 inline-block rounded-full"
-                                    style={{ backgroundColor: getColorByIndex(idx) }}
-                                ></span>
-                                <span>{task.task_name}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+                                return (
+                                    <div key={uIdx}>
+                                        <p className="text-sm font-medium text-gray-800 dark:text-white mb-1">
+                                            {user.first_name} {user.last_name}
+                                        </p>
+                                        <div className="relative bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden">
+                                            <div
+                                                className="absolute top-0 left-0 h-full bg-gray-300 dark:bg-gray-500"
+                                                style={{ width: `${assigned}px`, maxWidth: "100%" }}
+                                            ></div>
+                                            <div className="relative bg-gray-300 rounded-full h-6 overflow-hidden">
+                                                <div
+                                                    className="absolute top-0 left-0 h-full bg-purple-800 text-white text-xs font-medium flex items-center justify-center"
+                                                    style={{
+                                                        width: `${usedPercent}%`,
+                                                        minWidth: utilized > 0 ? "2.5rem" : "2.5rem", // Always visible
+                                                        borderRadius: "9999px",
+                                                    }}
+                                                >
+                                                    {utilized.toFixed(1)} h
+                                                </div>
+                                            </div>
 
-            {/* Breakdown of Employees */}
-            {employees.length > 0 && (
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow mt-8">
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                        Breakdown of Employees
-                    </h2>
-
-                    <div className="space-y-4">
-                        {employees.map((emp, idx) => {
-                            const total = parseFloat(emp.total_hours) || 0;
-                            const percent = Math.min((total / projectedHours) * 100, 100);
-                            const offset = percent >= 95 ? 0 : 5;
-                            const barWidth = `calc(${percent}% + ${offset}%)`;
-
-                            return (
-                                <div key={idx} className="flex items-center gap-4">
-                                    <span className="w-40 text-sm text-gray-800 dark:text-gray-200">
-                                        {emp.emp_name}
-                                    </span>
-                                    <div className="relative flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#18002c] rounded-full text-white text-xs font-medium flex items-center justify-end pr-3"
-                                            style={{ width: barWidth, maxWidth: "100%" }}
-                                            title={`${total.toFixed(2)} hours`}
-                                        >
-                                            {total.toFixed(2)} h
                                         </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Assigned: {assigned.toFixed(1)} h
+                                        </p>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                ))
             )}
         </div>
     );

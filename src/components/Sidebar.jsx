@@ -44,8 +44,8 @@ const allMenuItems = [
   },
   {
     icon: FaFileAlt,
-    route: "/settings",
-    label: "Settings",
+    route: "/invoice-dashboard",
+    label: "Manage Invoices",
     roles: ["Admin", "Super Admin"]
   }
 ];

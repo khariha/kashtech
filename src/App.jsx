@@ -24,6 +24,8 @@ import { SearchProvider } from "./context/SearchContext";
 import { useTheme } from "./context/ThemeContext";
 import TimesheetReport from "./pages/TimesheetReport";
 import TimesheetHoursReport from "./pages/TimesheetHoursReport";
+import DailyTimesheetReport from "./pages/DailyTimesheetReport";
+import ManageInvoices from "./pages/ManageInvoices";
 
 const AppLayout = ({ children }) => {
   const { theme } = useTheme();
@@ -63,8 +65,16 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login key={location.key} />} />
       <Route path="/projects/:sowId" element={withLayout(ProjectDetails)} />
       <Route path="/manage-projects/:companyId" element={<ManageProjects />} />
-      <Route path="/manage-timesheet" element={withLayout(ManageTimesheet)} />
-      <Route path="/employee-dashboard" element={withLayout(EmployeeDashboard)} />
+      <Route
+        path="/manage-timesheet"
+        element={renderProtectedPage(["Admin", "Super Admin", "Basic User"], ManageTimesheet)}
+      />
+      <Route
+        path="/employee-dashboard"
+        element={renderProtectedPage(["Basic User"], EmployeeDashboard)}
+      />
+
+      <Route path="/invoice-dashboard" element={withLayout(ManageInvoices)} />
 
       {/* Admin and Super Admin Pages */}
       <Route path="/" element={renderProtectedPage(["Admin", "Super Admin"], Dashboard)} />
@@ -72,6 +82,7 @@ const AppRoutes = () => {
       <Route path="/manage-clients" element={renderProtectedPage(["Admin", "Super Admin"], ManageClients)} />
       <Route path="/timesheet-report" element={renderProtectedPage(["Admin", "Super Admin"], TimesheetReport)} />
       <Route path="/timesheet-hours-report" element={renderProtectedPage(["Admin", "Super Admin"], TimesheetHoursReport)} />
+      <Route path="/timesheet-daily-hours-report" element={renderProtectedPage(["Admin", "Super Admin"], DailyTimesheetReport)} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />

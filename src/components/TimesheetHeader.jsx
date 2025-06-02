@@ -120,12 +120,22 @@ const TimesheetHeader = ({
           View Report by Weekly Hours
         </button>
       )}
-          {(userRole === "Admin" || userRole === "Super Admin") && (
+      
+      {/*{(userRole === "Admin" || userRole === "Super Admin") && (
         <button
           onClick={() => navigate("/timesheet-hours-report")}
           className="ml-auto border text-purple-700 px-4 py-2 rounded hover:bg-purple-50 text-sm"
         >
           View Report by Total Hours
+        </button>
+      )}*/}
+
+      {(userRole === "Admin" || userRole === "Super Admin") && (
+        <button
+          onClick={() => navigate("/timesheet-daily-hours-report")}
+          className="ml-auto border text-purple-700 px-4 py-2 rounded hover:bg-purple-50 text-sm"
+        >
+          View Report by Daily Total Hours
         </button>
       )}
     </div>

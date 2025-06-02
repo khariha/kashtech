@@ -1,4 +1,4 @@
-const BASE_URL = "http://172.174.98.154:5000/api";
+const BASE_URL = "http://localhost:5000/api";
 
 const API = {
   // 🔐 Auth
@@ -20,6 +20,12 @@ const API = {
     `${BASE_URL}/timesheet/week/${empId}/${weekStartDate}`,
   GET_CLIENTS_BY_BILLABLE: (billable) => `${BASE_URL}/timesheet/companies?billable=${billable}`,
   GET_PROJECTS_BY_COMPANY: (companyId) => `${BASE_URL}/timesheet/projects/${companyId}`,
+  TIMESHEET_HOURS_REPORT: `${BASE_URL}/timesheet/hours-report`,
+  GET_ALL_CLIENTS: `${BASE_URL}/clients`,            
+  GET_ALL_EMPLOYEES: `${BASE_URL}/employees`,
+
+  TIMESHEET_DAILY_HOURS_REPORT: `${BASE_URL}/timesheet/daily-hours-report`,
+  TIMESHEET_DAILY_REPORT: `${BASE_URL}/timesheet/daily-report`,
 
   // 🏢 Company & Project Management
   FETCH_MANAGE_CLIENTS: `${BASE_URL}/manageclients`,
@@ -27,8 +33,6 @@ const API = {
 
   GET_COMPANIES_BY_BILLABLE: (isBillable) =>
     `${BASE_URL}/timesheet/companies?billable=${isBillable}`,
-  GET_PROJECTS_BY_COMPANY: (companyId) =>
-    `${BASE_URL}/timesheet/projects/${companyId}`, // for timesheet only
   CLIENT_PROJECTS: `${BASE_URL}/dashboard/client-projects`,
 
   // 🛠️ Full Project Management APIs (for ManageProjects.jsx)
@@ -67,6 +71,23 @@ const API = {
   DELETE_COMPANY_ADMIN: `${BASE_URL}/admins/company`,
   GET_ALL_COMPANY_ADMINS: `${BASE_URL}/admins/all-admins`,
   FETCH_ADMIN_EMPLOYEES: `${BASE_URL}/admins/employees`,
+
+
+// 📄 Invoice APIs
+FETCH_ALL_INVOICES: `${BASE_URL}/invoices`,
+FETCH_INVOICE_BY_ID: (id) => `${BASE_URL}/invoices/${id}`,
+CREATE_INVOICE: `${BASE_URL}/invoices`,
+DELETE_INVOICE: (id) => `${BASE_URL}/invoices/${id}`,
+FETCH_ROLES: `${BASE_URL}/roles`,
+UPDATE_INVOICE: (id) => `${BASE_URL}/invoices/${id}`,
+
+// 🔽 Invoice Dropdown Support APIs
+GET_ALL_COMPANIES: `${BASE_URL}/clients`, // for company dropdown
+GET_PROJECTS_BY_COMPANY_INVOICE: (companyId) => `${BASE_URL}/projects/company/${companyId}`, // projects by company
+GET_EMPLOYEES_BY_PROJECT: (sowId) => `${BASE_URL}/invoices/employees/by-project/${sowId}`,
+GET_ROLES_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/roles`,
+GET_EMPLOYEES_BY_PROJECT_AND_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/roles/${roleId}/employees`,
+
 };
 
 export default API;
