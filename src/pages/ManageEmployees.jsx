@@ -163,22 +163,38 @@ const ManageEmployees = () => {
                                                         <p className="text-xs"><strong>Username:</strong> {emp.kash_operations_usn}</p>
                                                         <p className="text-xs"><strong>Admin Level:</strong> {emp.admin_level}</p>
                                                     </div>
+                                                    {/* Clients Section */}
                                                     <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow border">
                                                         <h4 className="font-semibold text-purple-900 dark:text-white mb-2">Clients</h4>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {["United Healthcare", "Illinois Education", "ABC", "UIC"].map(client => (
-                                                                <span key={client} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">{client}</span>
-                                                            ))}
+                                                            {emp.assigned_clients?.length > 0 ? (
+                                                                emp.assigned_clients.map((client) => (
+                                                                    <span key={client.company_id} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                                                                        {client.company_name}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-xs text-gray-500">No clients assigned</span>
+                                                            )}
                                                         </div>
                                                     </div>
+
+                                                    {/* Projects Section */}
                                                     <div className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow border">
                                                         <h4 className="font-semibold text-purple-900 dark:text-white mb-2">Projects</h4>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {["Project 1", "Project 2", "Project 3", "Project 4", "Project 5"].map(project => (
-                                                                <span key={project} className="bg-gray-200 dark:bg-gray-600 text-xs px-2 py-1 rounded-full">{project}</span>
-                                                            ))}
+                                                            {emp.assigned_projects?.length > 0 ? (
+                                                                emp.assigned_projects.map((proj, idx) => (
+                                                                    <span key={idx} className="bg-gray-200 dark:bg-gray-600 text-xs px-2 py-1 rounded-full">
+                                                                        {proj.project_category}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-xs text-gray-500">No projects assigned</span>
+                                                            )}
                                                         </div>
                                                     </div>
+
                                                 </div>
                                             </td>
                                         </tr>
