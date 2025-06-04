@@ -74,7 +74,8 @@ const AppRoutes = () => {
         element={renderProtectedPage(["Basic User"], EmployeeDashboard)}
       />
 
-      <Route path="/invoice-dashboard" element={withLayout(ManageInvoices)} />
+      <Route path="/invoice-dashboard" element={renderProtectedPage(["Admin", "Super Admin"], ManageInvoices)} />
+
 
       {/* Admin and Super Admin Pages */}
       <Route path="/" element={renderProtectedPage(["Admin", "Super Admin"], Dashboard)} />
