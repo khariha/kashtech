@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://20.127.197.227:5000/api";
 
 const API = {
   // 🔐 Auth
