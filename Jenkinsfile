@@ -6,7 +6,7 @@ pipeline {
         IMAGE_TAG = "build-${BUILD_NUMBER}"
         DOCKER_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
         LATEST_TAG = "${IMAGE_NAME}:latest"
-        REMOTE_HOST = "172.174.98.154"
+        REMOTE_HOST = "20.127.197.227"
         SSH_CRED_ID = "azure-ssh-key"
         CONTAINER_NAME = "kashtech"
         APP_PORT = "3000"
