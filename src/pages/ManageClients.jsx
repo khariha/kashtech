@@ -137,7 +137,7 @@ const ManageClients = () => {
     return (
         <div className="p-6 relative">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test</h1>
+                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test1</h1>
                 <button
                     className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-orange-600 text-sm flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -261,7 +261,8 @@ const ManageClients = () => {
                                                             </button>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {client.projects?.length ? client.projects.map((proj, idx) => (
+                                                            {Array.isArray(client.projects) && client.projects.length ? client.projects.map((proj, idx) => (
+
                                                                 <span
                                                                     key={idx}
                                                                     className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
