@@ -35,20 +35,19 @@ const ManageClients = () => {
     const fetchClients = async () => {
         try {
             const token = localStorage.getItem("token");
-
-            // ✅ 1. Get all clients
+    
             const res = await axios.get(API.FETCH_MANAGE_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
-            // ✅ 2. Get all admins with full_name
+    
             const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
-            // ✅ 3. Create admin map by company_id
+    
             const adminMap = {};
-            for (const row of adminRes.data) {
+            const admins = Array.isArray(adminRes.data.data) ? adminRes.data.data : adminRes.data;
+    
+            for (const row of admins) {
                 if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
                 adminMap[row.company_id].push({
                     usn: row.kash_operations_usn,
@@ -56,21 +55,20 @@ const ManageClients = () => {
                     full_name: row.full_name || row.kash_operations_usn,
                 });
             }
-
-            // ✅ 4. Enrich clients with admins
-            const enrichedClients = res.data.map((client) => ({
+    
+            const clientList = Array.isArray(res.data.data) ? res.data.data : res.data;
+    
+            const enrichedClients = clientList.map((client) => ({
                 ...client,
                 admins: adminMap[client.company_id] || [],
             }));
-
-            // ✅ 5. Set state
+    
             setClients(enrichedClients);
-
         } catch (err) {
             console.error("❌ Error fetching clients", err);
         }
     };
-
+    
 
 
     const handleSort = (key) => {
