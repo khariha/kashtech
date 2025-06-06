@@ -36,17 +36,19 @@ const ManageClients = () => {
         try {
             const token = localStorage.getItem("token");
 
-            const res = await axios.get(API.FETCH_MANAGE_CLIENTS, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const [clientRes, adminRes] = await Promise.all([
+                axios.get(API.FETCH_MANAGE_CLIENTS, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                axios.get(API.GET_ALL_COMPANY_ADMINS, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+            ]);
 
-            const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            console.log("✅ Clients response:", clientRes.data);
+            console.log("✅ Admins response:", adminRes.data);
 
-            console.log("✅ API.FETCH_MANAGE_CLIENTS:", res.data);
-            console.log("✅ API.GET_ALL_COMPANY_ADMINS:", adminRes.data);
-
+            // Build admin map safely
             const adminMap = {};
             const admins = Array.isArray(adminRes.data?.data)
                 ? adminRes.data.data
@@ -55,7 +57,9 @@ const ManageClients = () => {
                     : [];
 
             for (const row of admins) {
-                if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
+                if (!adminMap[row.company_id]) {
+                    adminMap[row.company_id] = [];
+                }
                 adminMap[row.company_id].push({
                     usn: row.kash_operations_usn,
                     role: row.role || "Admin",
@@ -63,20 +67,22 @@ const ManageClients = () => {
                 });
             }
 
-            const rawClients = Array.isArray(res.data?.data)
-                ? res.data.data
-                : Array.isArray(res.data)
-                    ? res.data
+            // Normalize clients safely
+            const safeClients = Array.isArray(clientRes.data?.data)
+                ? clientRes.data.data
+                : Array.isArray(clientRes.data)
+                    ? clientRes.data
                     : [];
 
-            const enrichedClients = rawClients.map((client) => ({
+            const enrichedClients = safeClients.map((client) => ({
                 ...client,
-                admins: Array.isArray(adminMap[client.company_id]) ? adminMap[client.company_id] : [],
+                admins: Array.isArray(adminMap[client.company_id])
+                    ? adminMap[client.company_id]
+                    : [],
                 projects: Array.isArray(client.projects) ? client.projects : [],
             }));
 
             console.log("✅ Final enrichedClients:", enrichedClients);
-
             setClients(enrichedClients);
         } catch (err) {
             console.error("❌ Error in fetchClients:", err);
@@ -137,7 +143,7 @@ const ManageClients = () => {
     return (
         <div className="p-6 relative">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test1</h1>
+                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test2</h1>
                 <button
                     className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-orange-600 text-sm flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -237,7 +243,7 @@ const ManageClients = () => {
                                                                 Manage Admins
                                                             </button>
                                                         </div>
-                                                        {client.admins?.length ? (
+                                                        {Array.isArray(client.admins) && client.admins.length ? (
                                                             <div className="flex flex-wrap gap-2">
                                                                 {client.admins.map((admin, idx) => (
                                                                     <span key={idx} className="px-3 py-1 bg-purple-200 text-purple-900 rounded-full text-xs">
@@ -261,23 +267,21 @@ const ManageClients = () => {
                                                             </button>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {Array.isArray(client.projects) && client.projects.length ? client.projects.map((proj, idx) => (
-
-                                                                <span
-                                                                    key={idx}
-                                                                    className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
-                                                                        ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
-                                                                        : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
-                                                                        }`}
-                                                                >
-                                                                    {proj.name}
-                                                                </span>
-                                                            )) : (
+                                                            {Array.isArray(client.projects) && client.projects.length ? (
+                                                                client.projects.map((proj, idx) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
+                                                                            ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
+                                                                            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                            }`}
+                                                                    >
+                                                                        {proj.name}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
                                                                 <p className="text-gray-500">No Projects</p>
                                                             )}
-
-
-
                                                         </div>
 
                                                     </div>
