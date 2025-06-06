@@ -35,18 +35,25 @@ const ManageClients = () => {
     const fetchClients = async () => {
         try {
             const token = localStorage.getItem("token");
-    
+
             const res = await axios.get(API.FETCH_MANAGE_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-    
+
             const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-    
+
+            console.log("✅ API.FETCH_MANAGE_CLIENTS:", res.data);
+            console.log("✅ API.GET_ALL_COMPANY_ADMINS:", adminRes.data);
+
             const adminMap = {};
-            const admins = Array.isArray(adminRes.data.data) ? adminRes.data.data : adminRes.data;
-    
+            const admins = Array.isArray(adminRes.data?.data)
+                ? adminRes.data.data
+                : Array.isArray(adminRes.data)
+                    ? adminRes.data
+                    : [];
+
             for (const row of admins) {
                 if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
                 adminMap[row.company_id].push({
@@ -55,20 +62,27 @@ const ManageClients = () => {
                     full_name: row.full_name || row.kash_operations_usn,
                 });
             }
-    
-            const clientList = Array.isArray(res.data.data) ? res.data.data : res.data;
-    
-            const enrichedClients = clientList.map((client) => ({
+
+            const rawClients = Array.isArray(res.data?.data)
+                ? res.data.data
+                : Array.isArray(res.data)
+                    ? res.data
+                    : [];
+
+            const enrichedClients = rawClients.map((client) => ({
                 ...client,
-                admins: adminMap[client.company_id] || [],
+                admins: Array.isArray(adminMap[client.company_id]) ? adminMap[client.company_id] : [],
+                projects: Array.isArray(client.projects) ? client.projects : [],
             }));
-    
+
+            console.log("✅ Final enrichedClients:", enrichedClients);
+
             setClients(enrichedClients);
         } catch (err) {
-            console.error("❌ Error fetching clients", err);
+            console.error("❌ Error in fetchClients:", err);
         }
     };
-    
+
 
 
     const handleSort = (key) => {
@@ -123,7 +137,7 @@ const ManageClients = () => {
     return (
         <div className="p-6 relative">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients</h1>
+                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test</h1>
                 <button
                     className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-orange-600 text-sm flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -251,8 +265,8 @@ const ManageClients = () => {
                                                                 <span
                                                                     key={idx}
                                                                     className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
-                                                                            ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
-                                                                            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                        ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
+                                                                        : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
                                                                         }`}
                                                                 >
                                                                     {proj.name}
