@@ -79,7 +79,12 @@ const ManageClients = () => {
                 admins: Array.isArray(adminMap[client.company_id])
                     ? adminMap[client.company_id]
                     : [],
-                projects: Array.isArray(client.projects) ? client.projects : [],
+                projects: Array.isArray(client.projects)
+                    ? client.projects
+                    : client.projects && typeof client.projects === "object"
+                        ? Object.values(client.projects)
+                        : [],
+
             }));
 
             console.log("✅ Final enrichedClients:", enrichedClients);
@@ -143,7 +148,7 @@ const ManageClients = () => {
     return (
         <div className="p-6 relative">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test2</h1>
+                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test3</h1>
                 <button
                     className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-orange-600 text-sm flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -267,21 +272,29 @@ const ManageClients = () => {
                                                             </button>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {Array.isArray(client.projects) && client.projects.length ? (
-                                                                client.projects.map((proj, idx) => (
-                                                                    <span
-                                                                        key={idx}
-                                                                        className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
-                                                                            ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
-                                                                            : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
-                                                                            }`}
-                                                                    >
-                                                                        {proj.name}
-                                                                    </span>
-                                                                ))
+                                                            {Array.isArray(client.projects) ? (
+                                                                client.projects.length > 0 ? (
+                                                                    client.projects.map((proj, idx) => (
+                                                                        <span
+                                                                            key={idx}
+                                                                            className={`px-3 py-1 text-xs rounded-full ${proj.status?.toLowerCase() === "active"
+                                                                                ? "bg-purple-200 text-purple-900 dark:bg-purple-700 dark:text-white"
+                                                                                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                                }`}
+                                                                        >
+                                                                            {proj.name}
+                                                                        </span>
+                                                                    ))
+                                                                ) : (
+                                                                    <p className="text-gray-500">No Projects</p>
+                                                                )
                                                             ) : (
-                                                                <p className="text-gray-500">No Projects</p>
+                                                                <>
+                                                                    {console.warn("⚠️ client.projects is not an array:", client.projects)}
+                                                                    <p className="text-red-500 text-xs">Invalid project data</p>
+                                                                </>
                                                             )}
+
                                                         </div>
 
                                                     </div>
