@@ -36,7 +36,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const res = await axios.get(API.PROJECTS_BY_COMPANY(companyId), {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setProjects(res.data);
+            setProjects(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch projects", err);
         }
