@@ -45,10 +45,6 @@ const ManageClients = () => {
                 }),
             ]);
 
-            console.log("✅ Clients response:", clientRes.data);
-            console.log("✅ Admins response:", adminRes.data);
-
-            // Build admin map safely
             const adminMap = {};
             const admins = Array.isArray(adminRes.data?.data)
                 ? adminRes.data.data
@@ -57,9 +53,7 @@ const ManageClients = () => {
                     : [];
 
             for (const row of admins) {
-                if (!adminMap[row.company_id]) {
-                    adminMap[row.company_id] = [];
-                }
+                if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
                 adminMap[row.company_id].push({
                     usn: row.kash_operations_usn,
                     role: row.role || "Admin",
@@ -67,7 +61,6 @@ const ManageClients = () => {
                 });
             }
 
-            // Normalize clients safely
             const safeClients = Array.isArray(clientRes.data?.data)
                 ? clientRes.data.data
                 : Array.isArray(clientRes.data)
@@ -81,20 +74,16 @@ const ManageClients = () => {
                     : [],
                 projects: Array.isArray(client.projects)
                     ? client.projects
-                    : client.projects && typeof client.projects === "object"
+                    : typeof client.projects === "object" && client.projects !== null
                         ? Object.values(client.projects)
                         : [],
-
             }));
 
-            console.log("✅ Final enrichedClients:", enrichedClients);
             setClients(enrichedClients);
         } catch (err) {
-            console.error("❌ Error in fetchClients:", err);
+            console.error("❌ Error fetching clients:", err);
         }
     };
-
-
 
     const handleSort = (key) => {
         let direction = "asc";
@@ -118,7 +107,7 @@ const ManageClients = () => {
     });
 
     const filteredClients = sortedClients.filter((c) =>
-        c?.company_name?.toLowerCase().includes(search?.toLowerCase() || "")
+        c?.company_name?.toLowerCase().includes(search.toLowerCase())
     );
 
     const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
@@ -148,7 +137,7 @@ const ManageClients = () => {
     return (
         <div className="p-6 relative">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients Test3</h1>
+                <h1 className="text-3xl font-bold text-purple-900 dark:text-white">Manage Clients</h1>
                 <button
                     className="bg-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-orange-600 text-sm flex items-center gap-2"
                     onClick={() => setShowAddModal(true)}
@@ -373,6 +362,7 @@ const ManageClients = () => {
                     onClose={() => setShowGenerateModal(false)}
                 />
             )}
+
         </div>
     );
 };
