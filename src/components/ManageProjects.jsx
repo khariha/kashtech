@@ -47,7 +47,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const res = await axios.get(API.FETCH_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setEmployees(res.data);
+            setEmployees(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch employees", err);
         }
@@ -58,7 +58,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const res = await axios.get("/api/roles", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setRolesFromDB(res.data);
+            setRolesFromDB(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch roles", err);
         }
