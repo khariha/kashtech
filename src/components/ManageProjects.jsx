@@ -89,11 +89,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            const assignmentData = res.data.map(role => ({
+            const data = Array.isArray(res.data) ? res.data : [];
+            const assignmentData = data.map(role => ({
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
-                employees: role.employees.map(empId => parseInt(empId))
+                employees: Array.isArray(role.employees) ? role.employees.map(empId => parseInt(empId)) : []
             }));
 
             setRoleAssignments(assignmentData);
@@ -175,8 +176,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
 
 
-
-
     const resetForm = () => {
         setFormData({
             project_name: "",
@@ -194,23 +193,45 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
     const handleAddRole = () => {
-        if (!selectedRoleId || !estimatedRoleHours || selectedRoleEmployees.length === 0) return;
-        const role = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
-        if (!role || roleAssignments.some((r) => r.role_id === role.role_id)) return;
+        if (!selectedRoleId || !estimatedRoleHours || selectedRoleEmployees.length === 0) {
+            alert("Please select a role, provide estimated hours, and assign at least one employee.");
+            return;
+        }
+
+        const roleId = Number(selectedRoleId);
+        const role = rolesFromDB.find((r) => r.role_id === roleId);
+        const estimatedHours = Number(estimatedRoleHours);
+
+        if (!role) {
+            alert("Selected role is invalid.");
+            return;
+        }
+
+        if (isNaN(estimatedHours) || estimatedHours <= 0) {
+            alert("Estimated hours must be a positive number.");
+            return;
+        }
+
+        if (roleAssignments.some((r) => r.role_id === roleId)) {
+            alert("This role has already been added.");
+            return;
+        }
 
         setRoleAssignments([
             ...roleAssignments,
             {
                 role_id: role.role_id,
                 role_name: role.role_name,
-                estimated_hours: parseInt(estimatedRoleHours),
+                estimated_hours: estimatedHours,
                 employees: selectedRoleEmployees.map((e) => e.value),
             },
         ]);
+
         setSelectedRoleId("");
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
     };
+
 
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
