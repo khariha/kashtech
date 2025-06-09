@@ -59,19 +59,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            console.log("Roles response:", res.data); // 🧪 Add this
+            console.log("Roles response:", res.data);
 
-            const roles = Array.isArray(res.data)
-                ? res.data
-                : Array.isArray(res.data.roles)
-                    ? res.data.roles
-                    : [];
-
-            setRolesFromDB(roles);
+            setRolesFromDB(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch roles", err);
         }
     };
+
 
 
     const handleEdit = async (proj) => {
