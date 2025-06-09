@@ -55,17 +55,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const fetchRoles = async () => {
         try {
-            const res = await axios.get("/api/roles", {
+            const res = await axios.get(API.FETCH_ROLES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
-            console.log("Roles response:", res.data);
-
             setRolesFromDB(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch roles", err);
         }
     };
+
 
 
 
