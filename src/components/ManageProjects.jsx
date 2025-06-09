@@ -77,7 +77,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 return "";
             }
         };
-
+    
         setEditingProject(proj);
         setFormData({
             project_name: proj.project_name,
@@ -87,12 +87,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             original_end_date: formatDate(proj.original_end_date),
             total_projected_hours: proj.total_projected_hours,
         });
-
+    
         try {
             const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-
+    
             const data = Array.isArray(res.data) ? res.data : [];
             const assignmentData = data.map(role => ({
                 role_id: parseInt(role.role_id),
@@ -100,12 +100,31 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 estimated_hours: role.estimated_hours,
                 employees: Array.isArray(role.employees) ? role.employees.map(empId => parseInt(empId)) : []
             }));
-
+    
             setRoleAssignments(assignmentData);
+    
+            // 🔽 ADD THIS BLOCK TO PREFILL FIELDS IN EDIT MODE
+            if (assignmentData.length > 0) {
+                const first = assignmentData[0];
+    
+                setSelectedRoleId(first.role_id.toString());
+                setEstimatedRoleHours(first.estimated_hours.toString());
+    
+                const mappedEmployees = first.employees
+                    .map(empId => {
+                        const emp = employees.find(e => e.emp_id === empId);
+                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                    })
+                    .filter(Boolean);
+    
+                setSelectedRoleEmployees(mappedEmployees);
+            }
+    
         } catch (err) {
             console.error("Failed to fetch role assignments", err);
         }
     };
+    
 
 
     const handleDelete = async (sow_id) => {
