@@ -68,8 +68,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
 
-
-
     const handleEdit = async (proj) => {
         const formatDate = (d) => {
             try {
@@ -145,6 +143,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Failed to load project roles. Please try again.");
         }
     };
+
+
+
 
 
 
