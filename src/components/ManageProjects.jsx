@@ -79,7 +79,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 return "";
             }
         };
-
+    
         setEditingProject(proj);
         setFormData({
             project_name: proj.project_name,
@@ -89,54 +89,55 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             original_end_date: formatDate(proj.original_end_date),
             total_projected_hours: proj.total_projected_hours,
         });
-
+    
         try {
-            const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const data = Array.isArray(res.data) ? res.data : [];
-
-            const assignmentData = data.map(role => ({
+            const [assignmentRes, employeesRes, rolesRes] = await Promise.all([
+                axios.get(`/api/projects/${proj.sow_id}/assignments`, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(API.FETCH_ALL_EMPLOYEES, { headers: { Authorization: `Bearer ${token}` } }),
+                axios.get(API.FETCH_ROLES, { headers: { Authorization: `Bearer ${token}` } }),
+            ]);
+    
+            const employeeList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
+            const rolesList = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+    
+            setEmployees(employeeList);
+            setRolesFromDB(rolesList);
+    
+            const assignmentData = Array.isArray(assignmentRes.data) ? assignmentRes.data.map(role => ({
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
                 employees: Array.isArray(role.employees) ? role.employees.map(empId => parseInt(empId)) : [],
-            }));
-
+            })) : [];
+    
             setRoleAssignments(assignmentData);
-
-            // 🛠 Wait until employees are loaded before setting UI state
-            const waitForEmployees = async () => {
-                let attempts = 0;
-                while (employees.length === 0 && attempts < 10) {
-                    await new Promise(res => setTimeout(res, 100)); // wait 100ms
-                    attempts++;
-                }
-
-                if (assignmentData.length > 0 && employees.length > 0) {
-                    const first = assignmentData[0];
-                    setSelectedRoleId(first.role_id);
-                    setEstimatedRoleHours(first.estimated_hours.toString());
-
-                    const mapped = first.employees.map(empId => {
-                        const emp = employees.find(e => e.emp_id === empId);
-                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                    }).filter(Boolean);
-
-                    setSelectedRoleEmployees(mapped);
-                    setEditingRoleIndex(0);
-                }
-            };
-
-            waitForEmployees();
-
+    
+            // Prefill form with first role
+            if (assignmentData.length > 0) {
+                const first = assignmentData[0];
+                setSelectedRoleId(first.role_id);
+                setEstimatedRoleHours(first.estimated_hours.toString());
+    
+                const mapped = first.employees.map(empId => {
+                    const emp = employeeList.find(e => e.emp_id === empId);
+                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                }).filter(Boolean);
+    
+                setSelectedRoleEmployees(mapped);
+                setEditingRoleIndex(0);
+            } else {
+                setSelectedRoleId("");
+                setEstimatedRoleHours("");
+                setSelectedRoleEmployees([]);
+                setEditingRoleIndex(null);
+            }
+    
         } catch (err) {
             console.error("Failed to fetch role assignments", err);
-            alert("Error loading role assignments. Please check your API.");
+            alert("Error loading data. Please check your API.");
         }
     };
-
+    
 
 
 
