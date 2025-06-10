@@ -17,7 +17,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     });
     const [employees, setEmployees] = useState([]);
     const [rolesFromDB, setRolesFromDB] = useState([]);
-    const [selectedRoleId, setSelectedRoleId] = useState("");
+    const [selectedRoleId, setSelectedRoleId] = useState(null);
     const [estimatedRoleHours, setEstimatedRoleHours] = useState("");
     const [selectedRoleEmployees, setSelectedRoleEmployees] = useState([]);
     const [roleAssignments, setRoleAssignments] = useState([]);
@@ -92,51 +92,52 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
         try {
             const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` }
             });
 
-            console.log("Role assignments API response:", res.data);
+            const data = Array.isArray(res.data) ? res.data : [];
 
-            const rawData = res.data;
-
-            // Try to extract assignment array safely
-            const data = Array.isArray(rawData)
-                ? rawData
-                : Array.isArray(rawData.assignments)
-                    ? rawData.assignments
-                    : [];
-
-            const assignmentData = data.map((role) => ({
+            const assignmentData = data.map(role => ({
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
                 employees: Array.isArray(role.employees)
-                    ? role.employees.map((empId) => parseInt(empId))
+                    ? role.employees.map(empId => parseInt(empId))
                     : [],
             }));
 
             setRoleAssignments(assignmentData);
 
+            // Prefill the first role into the "Assign Roles" form section
             if (assignmentData.length > 0) {
                 const first = assignmentData[0];
-                setEditingRoleIndex(0);
+
                 setSelectedRoleId(first.role_id.toString());
                 setEstimatedRoleHours(first.estimated_hours.toString());
 
-                const mappedEmployees = first.employees
-                    .map((empId) => {
-                        const emp = employees.find((e) => e.emp_id === empId);
-                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                    })
-                    .filter(Boolean);
+                const employeeOptions = first.employees.map(empId => {
+                    const emp = employees.find(e => e.emp_id === empId);
+                    return emp
+                        ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` }
+                        : null;
+                }).filter(Boolean);
 
-                setSelectedRoleEmployees(mappedEmployees);
+                setSelectedRoleEmployees(employeeOptions);
+                setEditingRoleIndex(0);
+            } else {
+                // reset role fields if no assignments
+                setSelectedRoleId("");
+                setEstimatedRoleHours("");
+                setSelectedRoleEmployees([]);
+                setEditingRoleIndex(null);
             }
 
         } catch (err) {
             console.error("Failed to fetch role assignments", err);
+            alert("Error loading role assignments. Please check your API.");
         }
     };
+
 
 
 
@@ -329,13 +330,25 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         <div className="mb-4">
                             <label className="block text-sm font-semibold mb-1">Assign Roles</label>
                             <div className="flex gap-2 mb-2">
-                                <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} className="w-1/2 border rounded px-3 py-2">
+                                <select
+                                    value={selectedRoleId ?? ""}
+                                    onChange={(e) => setSelectedRoleId(parseInt(e.target.value))}
+                                    className="w-1/2 border rounded px-3 py-2"
+                                >
                                     <option value="">Select Role</option>
                                     {rolesFromDB.map(role => (
-                                        <option key={role.role_id} value={role.role_id}>{role.role_name}</option>
+                                        <option key={role.role_id} value={role.role_id}>
+                                            {role.role_name}
+                                        </option>
                                     ))}
                                 </select>
-                                <input type="number" placeholder="Estimated Hours" value={estimatedRoleHours} onChange={(e) => setEstimatedRoleHours(e.target.value)} className="w-1/3 border rounded px-3 py-2" />
+                                <input
+                                    type="number"
+                                    placeholder="Estimated Hours"
+                                    value={estimatedRoleHours}
+                                    onChange={(e) => setEstimatedRoleHours(e.target.value)}
+                                    className="w-1/3 border rounded px-3 py-2"
+                                />
                             </div>
 
                             <label className="block text-sm mb-1">Select Employees</label>
