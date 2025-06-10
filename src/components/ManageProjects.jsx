@@ -79,7 +79,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 return "";
             }
         };
-    
+
         setEditingProject(proj);
         setFormData({
             project_name: proj.project_name,
@@ -89,41 +89,49 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             original_end_date: formatDate(proj.original_end_date),
             total_projected_hours: proj.total_projected_hours,
         });
-    
+
         try {
-            const [assignmentRes, employeesRes, rolesRes] = await Promise.all([
-                axios.get(`/api/projects/${proj.sow_id}/assignments`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(API.FETCH_ALL_EMPLOYEES, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(API.FETCH_ROLES, { headers: { Authorization: `Bearer ${token}` } }),
+            const [assignmentsRes, employeesRes, rolesRes] = await Promise.all([
+                axios.get(`/api/projects/${proj.sow_id}/assignments`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                axios.get(API.FETCH_ALL_EMPLOYEES, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                axios.get(API.FETCH_ROLES, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
             ]);
-    
-            const employeeList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
+
+            const assignments = Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [];
+            const employeesList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
             const rolesList = Array.isArray(rolesRes.data) ? rolesRes.data : [];
-    
-            setEmployees(employeeList);
+
+            setEmployees(employeesList);
             setRolesFromDB(rolesList);
-    
-            const assignmentData = Array.isArray(assignmentRes.data) ? assignmentRes.data.map(role => ({
+
+            const assignmentData = assignments.map(role => ({
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
                 employees: Array.isArray(role.employees) ? role.employees.map(empId => parseInt(empId)) : [],
-            })) : [];
-    
+            }));
+
             setRoleAssignments(assignmentData);
-    
-            // Prefill form with first role
+
             if (assignmentData.length > 0) {
                 const first = assignmentData[0];
-                setSelectedRoleId(first.role_id);
+                setSelectedRoleId(first.role_id.toString());
                 setEstimatedRoleHours(first.estimated_hours.toString());
-    
-                const mapped = first.employees.map(empId => {
-                    const emp = employeeList.find(e => e.emp_id === empId);
-                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                }).filter(Boolean);
-    
-                setSelectedRoleEmployees(mapped);
+
+                const mappedEmployees = first.employees
+                    .map(empId => {
+                        const emp = employeesList.find(e => e.emp_id === empId);
+                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                    })
+                    .filter(Boolean);
+
+                setSelectedRoleEmployees(mappedEmployees);
                 setEditingRoleIndex(0);
             } else {
                 setSelectedRoleId("");
@@ -131,13 +139,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 setSelectedRoleEmployees([]);
                 setEditingRoleIndex(null);
             }
-    
+
         } catch (err) {
-            console.error("Failed to fetch role assignments", err);
-            alert("Error loading data. Please check your API.");
+            console.error("Failed to fetch role assignments or related data", err);
+            alert("Failed to load project roles. Please try again.");
         }
     };
-    
+
 
 
 
