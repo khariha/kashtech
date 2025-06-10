@@ -92,14 +92,27 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
         try {
             const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
             });
 
-            const assignmentData = res.data.map(role => ({
+            console.log("Role assignments API response:", res.data);
+
+            const rawData = res.data;
+
+            // Try to extract assignment array safely
+            const data = Array.isArray(rawData)
+                ? rawData
+                : Array.isArray(rawData.assignments)
+                    ? rawData.assignments
+                    : [];
+
+            const assignmentData = data.map((role) => ({
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
-                employees: role.employees.map(empId => parseInt(empId))
+                employees: Array.isArray(role.employees)
+                    ? role.employees.map((empId) => parseInt(empId))
+                    : [],
             }));
 
             setRoleAssignments(assignmentData);
@@ -109,10 +122,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 setEditingRoleIndex(0);
                 setSelectedRoleId(first.role_id.toString());
                 setEstimatedRoleHours(first.estimated_hours.toString());
-                const mappedEmployees = first.employees.map(empId => {
-                    const emp = employees.find(e => e.emp_id === empId);
-                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                }).filter(Boolean);
+
+                const mappedEmployees = first.employees
+                    .map((empId) => {
+                        const emp = employees.find((e) => e.emp_id === empId);
+                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                    })
+                    .filter(Boolean);
+
                 setSelectedRoleEmployees(mappedEmployees);
             }
 
@@ -120,6 +137,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             console.error("Failed to fetch role assignments", err);
         }
     };
+
 
 
     const handleDelete = async (sow_id) => {
