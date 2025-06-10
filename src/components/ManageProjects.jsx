@@ -57,7 +57,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const fetchRoles = async () => {
         try {
-            console.log("FETCH_ROLES endpoint:", API.FETCH_ROLES);
             const res = await axios.get(API.FETCH_ROLES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -66,6 +65,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             console.error("Failed to fetch roles", err);
         }
     };
+
 
 
     const handleEdit = async (proj) => {
@@ -116,39 +116,33 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }));
 
             setRoleAssignments(assignmentData);
+            setTimeout(() => {
+                if (assignmentData.length > 0) {
+                    const first = assignmentData[0];
+                    setSelectedRoleId(first.role_id);
+                    setEstimatedRoleHours(first.estimated_hours.toString());
 
-            if (assignmentData.length > 0) {
-                const first = assignmentData[0];
-                setSelectedRoleId(first.role_id.toString());
-                setEstimatedRoleHours(first.estimated_hours.toString());
+                    const mappedEmployees = first.employees
+                        .map(empId => {
+                            const emp = employeesList.find(e => e.emp_id === empId);
+                            return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                        })
+                        .filter(Boolean);
 
-                const mappedEmployees = first.employees
-                    .map(empId => {
-                        const emp = employeesList.find(e => e.emp_id === empId);
-                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                    })
-                    .filter(Boolean);
-
-                setSelectedRoleEmployees(mappedEmployees);
-                setEditingRoleIndex(0);
-            } else {
-                setSelectedRoleId("");
-                setEstimatedRoleHours("");
-                setSelectedRoleEmployees([]);
-                setEditingRoleIndex(null);
-            }
-
+                    setSelectedRoleEmployees(mappedEmployees);
+                    setEditingRoleIndex(0);
+                } else {
+                    setSelectedRoleId(null);
+                    setEstimatedRoleHours("");
+                    setSelectedRoleEmployees([]);
+                    setEditingRoleIndex(null);
+                }
+            }, 0);
         } catch (err) {
             console.error("Failed to fetch role assignments or related data", err);
             alert("Failed to load project roles. Please try again.");
         }
     };
-
-
-
-
-
-
 
 
     const handleDelete = async (sow_id) => {
