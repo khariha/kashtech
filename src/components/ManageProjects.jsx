@@ -101,42 +101,42 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 role_id: parseInt(role.role_id),
                 role_name: role.role_name,
                 estimated_hours: role.estimated_hours,
-                employees: Array.isArray(role.employees)
-                    ? role.employees.map(empId => parseInt(empId))
-                    : [],
+                employees: Array.isArray(role.employees) ? role.employees.map(empId => parseInt(empId)) : [],
             }));
 
             setRoleAssignments(assignmentData);
 
-            // Prefill the first role into the "Assign Roles" form section
-            if (assignmentData.length > 0) {
-                const first = assignmentData[0];
+            // 🛠 Wait until employees are loaded before setting UI state
+            const waitForEmployees = async () => {
+                let attempts = 0;
+                while (employees.length === 0 && attempts < 10) {
+                    await new Promise(res => setTimeout(res, 100)); // wait 100ms
+                    attempts++;
+                }
 
-                setSelectedRoleId(first.role_id.toString());
-                setEstimatedRoleHours(first.estimated_hours.toString());
+                if (assignmentData.length > 0 && employees.length > 0) {
+                    const first = assignmentData[0];
+                    setSelectedRoleId(first.role_id);
+                    setEstimatedRoleHours(first.estimated_hours.toString());
 
-                const employeeOptions = first.employees.map(empId => {
-                    const emp = employees.find(e => e.emp_id === empId);
-                    return emp
-                        ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` }
-                        : null;
-                }).filter(Boolean);
+                    const mapped = first.employees.map(empId => {
+                        const emp = employees.find(e => e.emp_id === empId);
+                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                    }).filter(Boolean);
 
-                setSelectedRoleEmployees(employeeOptions);
-                setEditingRoleIndex(0);
-            } else {
-                // reset role fields if no assignments
-                setSelectedRoleId("");
-                setEstimatedRoleHours("");
-                setSelectedRoleEmployees([]);
-                setEditingRoleIndex(null);
-            }
+                    setSelectedRoleEmployees(mapped);
+                    setEditingRoleIndex(0);
+                }
+            };
+
+            waitForEmployees();
 
         } catch (err) {
             console.error("Failed to fetch role assignments", err);
             alert("Error loading role assignments. Please check your API.");
         }
     };
+
 
 
 
@@ -337,11 +337,10 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                 >
                                     <option value="">Select Role</option>
                                     {rolesFromDB.map(role => (
-                                        <option key={role.role_id} value={role.role_id}>
-                                            {role.role_name}
-                                        </option>
+                                        <option key={role.role_id} value={role.role_id}>{role.role_name}</option>
                                     ))}
                                 </select>
+
                                 <input
                                     type="number"
                                     placeholder="Estimated Hours"
