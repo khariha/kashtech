@@ -286,7 +286,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         <button onClick={() => handleEdit(proj)}>
                                             <FaEdit className="text-purple-600" />
                                         </button>
-                                        console.log("✅ Final roleAssignments to render:", assignmentData);
 
                                         <button onClick={() => handleDelete(proj.sow_id)}>
                                             <FaTrash className="text-red-600" />
