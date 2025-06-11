@@ -45,7 +45,9 @@ const API = {
 
   ASSIGN_ROLE: `${BASE_URL}/projects/assign-role`,
   ASSIGN_EMPLOYEE: `${BASE_URL}/projects/assign-employee`,
-  FETCH_ROLE_ASSIGNMENTS: (sowId) => `${BASE_URL}/projects/${sowId}/assignments`,
+  GET_PROJECT_ASSIGNMENTS: (sowId) => `${BASE_URL}/projects/${sowId}/assignments`,
+  DELETE_PROJECT_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/role/${roleId}`,
+
 
 
   // 🔄 Project Subcategories & Tasks
