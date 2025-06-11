@@ -73,18 +73,21 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return isNaN(dt.getTime()) ? "" : dt.toISOString().split("T")[0];
         };
 
+        // Set the main project being edited
         setEditingProject(proj);
+
+        // Set form data from selected project
         setFormData({
-            project_name: proj.project_name,
-            sow_id: proj.sow_id,
-            current_status: proj.current_status,
+            project_name: proj.project_name || "",
+            sow_id: proj.sow_id || "",
+            current_status: proj.current_status || "Active",
             original_start_date: formatDate(proj.original_start_date),
             original_end_date: formatDate(proj.original_end_date),
-            total_projected_hours: proj.total_projected_hours,
+            total_projected_hours: proj.total_projected_hours || "",
         });
 
         try {
-            // ⚠️ IMPORTANT: Correct base URL (port 5000)
+            // Load all data in parallel
             const assignmentsUrl = `http://20.127.197.227:5000/api/projects/${proj.sow_id}/assignments`;
 
             const [assignRes, empRes, roleRes] = await Promise.all([
@@ -99,33 +102,36 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }),
             ]);
 
-            const employeesList = empRes.data;
-            const rolesList = roleRes.data;
+            const employeesList = Array.isArray(empRes.data) ? empRes.data : [];
+            const rolesList = Array.isArray(roleRes.data) ? roleRes.data : [];
 
+            // Map assignment data
             const assignmentData = (assignRes.data || []).map(r => ({
-                role_id: +r.role_id,
+                role_id: Number(r.role_id),
                 role_name: r.role_name,
-                estimated_hours: +r.estimated_hours,
-                employees: (r.employees || []).map(e => +e),
+                estimated_hours: Number(r.estimated_hours),
+                employees: Array.isArray(r.employees) ? r.employees.map(e => Number(e)) : [],
             }));
 
             setEmployees(employeesList);
             setRolesFromDB(rolesList);
             setRoleAssignments(assignmentData);
 
+            // Populate first role into the editing form (optional UX)
             if (assignmentData.length > 0) {
                 const first = assignmentData[0];
                 setSelectedRoleId(first.role_id);
                 setEstimatedRoleHours(first.estimated_hours.toString());
 
                 const mapped = first.employees.map(empId => {
-                    const e = employeesList.find(x => x.emp_id === empId);
-                    return e ? { value: e.emp_id, label: `${e.first_name} ${e.last_name}` } : null;
+                    const emp = employeesList.find(e => e.emp_id === empId);
+                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
                 }).filter(Boolean);
 
                 setSelectedRoleEmployees(mapped);
                 setEditingRoleIndex(0);
             } else {
+                // Clear role editor
                 setSelectedRoleId(null);
                 setEstimatedRoleHours("");
                 setSelectedRoleEmployees([]);
@@ -137,6 +143,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Couldn't load project roles – check console/network for issues.");
         }
     };
+
 
 
 
@@ -168,11 +175,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             original_end_date: "",
             total_projected_hours: "",
         });
+
         setEditingProject(null);
         setRoleAssignments([]);
-        setSelectedRoleId("");
+        setSelectedRoleId(null); // Use null for consistency with initial state
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
+        setEditingRoleIndex(null); // Make sure to reset this too
     };
 
     const handleAddRole = () => {
@@ -236,31 +245,41 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         }
 
-        // 🚨 Build assignments from state + last role input (if any)
+        // Step 1: Build assignments list
         let assignmentsToSave = [...roleAssignments];
 
+        const roleId = parseInt(selectedRoleId);
+        const estimatedHours = parseInt(estimatedRoleHours);
+
         const hasUnaddedRole =
-            selectedRoleId &&
-            estimatedRoleHours &&
+            roleId &&
+            !isNaN(estimatedHours) &&
             selectedRoleEmployees.length > 0 &&
-            !assignmentsToSave.some((r) => r.role_id === parseInt(selectedRoleId));
+            !assignmentsToSave.some(r => r.role_id === roleId);
 
         if (hasUnaddedRole) {
-            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
+            const roleObj = rolesFromDB.find(r => r.role_id === roleId);
             if (roleObj) {
                 assignmentsToSave.push({
-                    role_id: parseInt(selectedRoleId),
+                    role_id: roleId,
                     role_name: roleObj.role_name,
-                    estimated_hours: parseInt(estimatedRoleHours),
-                    employees: selectedRoleEmployees.map((e) => e.value),
+                    estimated_hours: estimatedHours,
+                    employees: selectedRoleEmployees.map(e => e.value),
                 });
             }
         }
 
+        if (assignmentsToSave.length === 0) {
+            alert("Please assign at least one role with employees before saving.");
+            return;
+        }
+
+        console.log("📝 Final assignments to save:", assignmentsToSave);
+
         try {
             const payload = { ...formData, company_id: companyId };
 
-            // Insert or update the project
+            // Step 2: Save or update project
             if (editingProject) {
                 await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -271,34 +290,44 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 });
             }
 
-            // Save role and employee assignments
+            // Step 3: Save role + employee assignments
             for (const role of assignmentsToSave) {
-                await axios.post("/api/projects/assign-role", {
-                    sow_id: formData.sow_id,
-                    role_id: role.role_id,
-                    estimated_hours: role.estimated_hours,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                await Promise.all(role.employees.map(emp_id =>
-                    axios.post("/api/projects/assign-employee", {
+                try {
+                    await axios.post("/api/projects/assign-role", {
                         sow_id: formData.sow_id,
-                        emp_id,
                         role_id: role.role_id,
+                        estimated_hours: role.estimated_hours,
                     }, {
                         headers: { Authorization: `Bearer ${token}` },
-                    })
-                ));
+                    });
+
+                    await Promise.all(
+                        role.employees.map(emp_id =>
+                            axios.post("/api/projects/assign-employee", {
+                                sow_id: formData.sow_id,
+                                emp_id,
+                                role_id: role.role_id,
+                            }, {
+                                headers: { Authorization: `Bearer ${token}` },
+                            })
+                        )
+                    );
+                } catch (roleError) {
+                    console.error(`❌ Failed to save role or employees for role_id ${role.role_id}`, roleError);
+                    alert(`Failed to save role ${role.role_name}. See console.`);
+                }
             }
 
             await fetchProjects();
             resetForm();
         } catch (err) {
-            console.error("Save failed:", err.response?.data || err);
-            alert("Save failed. Check console.");
+            console.error("❌ Project save failed:", err.response?.data || err);
+            alert("Save failed. See console for details.");
         }
     };
+
+
+
 
 
     return (
