@@ -77,7 +77,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 return "";
             }
         };
-    
+
         setEditingProject(proj);
         setFormData({
             project_name: proj.project_name,
@@ -87,7 +87,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             original_end_date: formatDate(proj.original_end_date),
             total_projected_hours: proj.total_projected_hours,
         });
-    
+
         try {
             const [assignmentsRes, employeesRes, rolesRes] = await Promise.all([
                 axios.get(`/api/projects/${proj.sow_id}/assignments`, {
@@ -100,37 +100,41 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 }),
             ]);
-    
+
             const assignments = Array.isArray(assignmentsRes.data) ? assignmentsRes.data : [];
             const employeesList = Array.isArray(employeesRes.data) ? employeesRes.data : [];
             const rolesList = Array.isArray(rolesRes.data) ? rolesRes.data : [];
-    
+
             setEmployees(employeesList);
             setRolesFromDB(rolesList);
-    
-            const assignmentData = assignments.map(role => ({
-                role_id: parseInt(role.role_id),
-                role_name: role.role_name,
-                estimated_hours: role.estimated_hours,
-                employees: Array.isArray(role.employees)
-                    ? role.employees.map(empId => parseInt(empId))
-                    : [],
-            }));
-    
+
+            const assignmentData = assignments.map(role => {
+                const matchedRole = rolesList.find(r => r.role_id === role.role_id);
+                return {
+                    role_id: parseInt(role.role_id),
+                    role_name: matchedRole?.role_name || role.role_name,
+                    estimated_hours: role.estimated_hours,
+                    employees: Array.isArray(role.employees)
+                        ? role.employees.map(empId => parseInt(empId))
+                        : [],
+                };
+            });
+
             setRoleAssignments(assignmentData);
-    
-            // 🟢 Keep add-role section blank on edit
-            setSelectedRoleId(null);
+
+            // Clear the add-role inputs
+            setSelectedRoleId("");
             setEstimatedRoleHours("");
             setSelectedRoleEmployees([]);
             setEditingRoleIndex(null);
-    
+
         } catch (err) {
             console.error("Failed to fetch role assignments or related data", err);
             alert("Failed to load project roles. Please try again.");
         }
     };
-    
+
+
 
 
     const handleDelete = async (sow_id) => {
