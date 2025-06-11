@@ -159,87 +159,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
-    // ✨ Add this to the top of handleSave to auto-include the current role input if not yet added
-    const handleSave = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Session expired. Please log in again.");
-            return;
-        }
-
-        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
-        for (const field of requiredFields) {
-            if (!formData[field]) {
-                alert(`Please fill in ${field.replaceAll("_", " ")}`);
-                return;
-            }
-        }
-
-        // 🔧 Patch: auto-add role input if user forgot to click "+ Add"
-        if (
-            selectedRoleId &&
-            estimatedRoleHours &&
-            selectedRoleEmployees.length > 0 &&
-            !roleAssignments.some((r) => r.role_id === parseInt(selectedRoleId))
-        ) {
-            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
-            if (roleObj) {
-                const newRole = {
-                    role_id: parseInt(selectedRoleId),
-                    role_name: roleObj.role_name,
-                    estimated_hours: parseInt(estimatedRoleHours),
-                    employees: selectedRoleEmployees.map((e) => e.value),
-                };
-                setRoleAssignments((prev) => [...prev, newRole]);
-            }
-        }
-
-        try {
-            const payload = { ...formData, company_id: companyId };
-
-            if (editingProject) {
-                await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-            } else {
-                await axios.post(API.GET_ALL_PROJECTS, payload, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-            }
-
-            for (const role of roleAssignments) {
-                await axios.post("/api/projects/assign-role", {
-                    sow_id: formData.sow_id,
-                    role_id: role.role_id,
-                    estimated_hours: role.estimated_hours,
-                }, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                for (const emp_id of role.employees) {
-                    await axios.post("/api/projects/assign-employee", {
-                        sow_id: formData.sow_id,
-                        emp_id,
-                        role_id: role.role_id,
-                    }, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                }
-            }
-
-            await fetchProjects();
-            resetForm();
-        } catch (err) {
-            console.error("Save failed:", err.response?.data || err);
-            alert("Save failed. Check console.");
-        }
-    };
-
-
-
-
-
-
     const resetForm = () => {
         setFormData({
             project_name: "",
@@ -284,6 +203,86 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
         setEditingRoleIndex(null);
+    };
+    const handleSave = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Session expired. Please log in again.");
+            return;
+        }
+
+        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
+        for (const field of requiredFields) {
+            if (!formData[field]) {
+                alert(`Please fill in ${field.replaceAll("_", " ")}`);
+                return;
+            }
+        }
+
+        // Create local copy and push last role if needed
+        let assignmentsToSave = [...roleAssignments];
+
+        const newRoleNotYetAdded =
+            selectedRoleId &&
+            estimatedRoleHours &&
+            selectedRoleEmployees.length > 0 &&
+            !assignmentsToSave.some(r => r.role_id === parseInt(selectedRoleId));
+
+        if (newRoleNotYetAdded) {
+            const roleObj = rolesFromDB.find(r => r.role_id === parseInt(selectedRoleId));
+            if (roleObj) {
+                assignmentsToSave.push({
+                    role_id: parseInt(selectedRoleId),
+                    role_name: roleObj.role_name,
+                    estimated_hours: parseInt(estimatedRoleHours),
+                    employees: selectedRoleEmployees.map(e => e.value),
+                });
+            }
+        }
+
+        try {
+            const payload = { ...formData, company_id: companyId };
+
+            // Save or update project
+            if (editingProject) {
+                await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            } else {
+                await axios.post(API.GET_ALL_PROJECTS, payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            }
+
+            // Save role and employee assignments
+            for (const role of assignmentsToSave) {
+                await axios.post("/api/projects/assign-role", {
+                    sow_id: formData.sow_id,
+                    role_id: role.role_id,
+                    estimated_hours: role.estimated_hours,
+                }, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                await Promise.all(
+                    role.employees.map(emp_id =>
+                        axios.post("/api/projects/assign-employee", {
+                            sow_id: formData.sow_id,
+                            emp_id,
+                            role_id: role.role_id,
+                        }, {
+                            headers: { Authorization: `Bearer ${token}` },
+                        })
+                    )
+                );
+            }
+
+            await fetchProjects();
+            resetForm();
+        } catch (err) {
+            console.error("Save failed:", err.response?.data || err);
+            alert("Save failed. Check console.");
+        }
     };
 
 
