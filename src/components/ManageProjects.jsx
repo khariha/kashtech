@@ -293,7 +293,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             // Step 3: Save role + employee assignments
             for (const role of assignmentsToSave) {
                 try {
-                    await axios.post("/api/projects/assign-role", {
+                    console.log("📤 Sending role assignment:", role);
+                    await axios.post("http://20.127.197.227:5000/api/projects/assign-role", {
                         sow_id: formData.sow_id,
                         role_id: role.role_id,
                         estimated_hours: role.estimated_hours,
@@ -302,15 +303,16 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     });
 
                     await Promise.all(
-                        role.employees.map(emp_id =>
-                            axios.post("/api/projects/assign-employee", {
+                        role.employees.map(emp_id => {
+                            console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`);
+                            return axios.post("http://20.127.197.227:5000/api/projects/assign-employee", {
                                 sow_id: formData.sow_id,
                                 emp_id,
                                 role_id: role.role_id,
                             }, {
                                 headers: { Authorization: `Bearer ${token}` },
-                            })
-                        )
+                            });
+                        })
                     );
                 } catch (roleError) {
                     console.error(`❌ Failed to save role or employees for role_id ${role.role_id}`, roleError);
