@@ -166,6 +166,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
+        // Simple validation
         const requiredFields = ['project_name', 'sow_id', 'original_start_date', 'original_end_date'];
         for (const field of requiredFields) {
             if (!formData[field]) {
@@ -187,11 +188,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 });
             }
 
-            // ✅ DEBUG LOG
-            console.log("Submitting roleAssignments:", roleAssignments);
-
             for (const role of roleAssignments) {
-                // Save Role
                 await axios.post("/api/projects/assign-role", {
                     sow_id: formData.sow_id,
                     role_id: role.role_id,
@@ -200,7 +197,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                // Save Assigned Employees
                 for (const emp_id of role.employees) {
                     await axios.post("/api/projects/assign-employee", {
                         sow_id: formData.sow_id,
@@ -212,16 +208,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }
             }
 
-            await fetchProjects();
+            await fetchProjects(); // refresh left side
             resetForm();
         } catch (err) {
-            console.error("Save failed:", err.response?.data || err);
-            alert("Save failed. Check console.");
+            console.error("Save failed", err);
+            const msg = err.response?.data?.error || err.message;
+            alert(`Error: ${msg}`);
         }
     };
-
-
-
 
 
     const resetForm = () => {
