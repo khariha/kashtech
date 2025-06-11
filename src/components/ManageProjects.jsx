@@ -159,6 +159,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
+    // ✨ Add this to the top of handleSave to auto-include the current role input if not yet added
     const handleSave = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -166,12 +167,30 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-        // Simple validation
-        const requiredFields = ['project_name', 'sow_id', 'original_start_date', 'original_end_date'];
+        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
         for (const field of requiredFields) {
             if (!formData[field]) {
-                alert(`Please fill in ${field.replaceAll('_', ' ')}`);
+                alert(`Please fill in ${field.replaceAll("_", " ")}`);
                 return;
+            }
+        }
+
+        // 🔧 Patch: auto-add role input if user forgot to click "+ Add"
+        if (
+            selectedRoleId &&
+            estimatedRoleHours &&
+            selectedRoleEmployees.length > 0 &&
+            !roleAssignments.some((r) => r.role_id === parseInt(selectedRoleId))
+        ) {
+            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
+            if (roleObj) {
+                const newRole = {
+                    role_id: parseInt(selectedRoleId),
+                    role_name: roleObj.role_name,
+                    estimated_hours: parseInt(estimatedRoleHours),
+                    employees: selectedRoleEmployees.map((e) => e.value),
+                };
+                setRoleAssignments((prev) => [...prev, newRole]);
             }
         }
 
@@ -208,14 +227,17 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }
             }
 
-            await fetchProjects(); // refresh left side
+            await fetchProjects();
             resetForm();
         } catch (err) {
-            console.error("Save failed", err);
-            const msg = err.response?.data?.error || err.message;
-            alert(`Error: ${msg}`);
+            console.error("Save failed:", err.response?.data || err);
+            alert("Save failed. Check console.");
         }
     };
+
+
+
+
 
 
     const resetForm = () => {
