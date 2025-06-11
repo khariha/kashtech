@@ -457,16 +457,21 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         <label className="text-sm text-gray-600">Assigned Employees</label>
                                         <Select
                                             isMulti
-                                            value={role.employees
-                                                .map(empId => {
-                                                    const emp = employees.find(e => e.emp_id === empId);
-                                                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                                                })
-                                                .filter(Boolean)}
+                                            value={
+                                                role.employees
+                                                    .map(empId => {
+                                                        const emp = employees.find(e => e.emp_id === empId);
+                                                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                                                    })
+                                                    .filter(Boolean)
+                                            }
                                             onChange={(selected) => {
-                                                const updated = [...roleAssignments];
-                                                updated[index].employees = selected.map(opt => opt.value);
-                                                setRoleAssignments(updated);
+                                                setRoleAssignments(prev => {
+                                                    const updated = [...prev];
+                                                    const newEmployees = selected.map(opt => opt.value);
+                                                    updated[index] = { ...updated[index], employees: newEmployees };
+                                                    return updated;
+                                                });
                                             }}
                                             options={employees.map(emp => ({
                                                 value: emp.emp_id,
@@ -474,6 +479,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                             }))}
                                             className="mt-1"
                                         />
+
                                     </div>
                                 </div>
                             ))
