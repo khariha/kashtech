@@ -138,34 +138,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
-    console.log("Raw backend assignment data:", assignmentsRes.data);
-    console.log("Parsed assignmentData:", assignmentData);
-    setTimeout(() => {
-        if (assignmentData.length > 0) {
-            const first = assignmentData[0];
-            setSelectedRoleId(first.role_id);
-            setEstimatedRoleHours(first.estimated_hours?.toString() || "");
-
-            const mappedEmployees = first.employees
-                .map(empId => {
-                    const emp = employeesList.find(e => e.emp_id === empId);
-                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                })
-                .filter(Boolean);
-
-            setSelectedRoleEmployees(mappedEmployees);
-            setEditingRoleIndex(0);
-        } else {
-            setSelectedRoleId(null);
-            setEstimatedRoleHours("");
-            setSelectedRoleEmployees([]);
-            setEditingRoleIndex(null);
-        }
-
-        // DEBUG: show current roleAssignments
-        console.log("✅ Prefilled roleAssignments:", assignmentData);
-    }, 100);
-
 
 
     useEffect(() => {
