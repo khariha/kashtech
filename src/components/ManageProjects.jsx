@@ -176,34 +176,51 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
     const handleAddRole = () => {
-        if (!selectedRoleId || !estimatedRoleHours || selectedRoleEmployees.length === 0) return;
-
         const roleId = parseInt(selectedRoleId);
-        const role = rolesFromDB.find((r) => r.role_id === roleId);
-        if (!role) return;
+        const estimatedHours = parseInt(estimatedRoleHours);
+
+        // Validate required fields
+        if (!roleId || !estimatedHours || selectedRoleEmployees.length === 0) {
+            alert("Please select a role, set estimated hours, and assign at least one employee.");
+            return;
+        }
+
+        const role = rolesFromDB.find(r => r.role_id === roleId);
+        if (!role) {
+            alert("Selected role is invalid.");
+            return;
+        }
 
         const updatedRole = {
             role_id: roleId,
             role_name: role.role_name,
-            estimated_hours: parseInt(estimatedRoleHours),
+            estimated_hours: estimatedHours,
             employees: selectedRoleEmployees.map(e => e.value),
         };
 
-        const updatedAssignments = [...roleAssignments];
+        setRoleAssignments(prev => {
+            const isDuplicate = prev.some(r => r.role_id === roleId);
+            if (editingRoleIndex !== null && editingRoleIndex >= 0) {
+                const newAssignments = [...prev];
+                newAssignments[editingRoleIndex] = updatedRole;
+                return newAssignments;
+            } else {
+                if (isDuplicate) {
+                    alert("This role is already assigned.");
+                    return prev;
+                }
+                return [...prev, updatedRole];
+            }
+        });
 
-        if (editingRoleIndex !== null && editingRoleIndex >= 0) {
-            updatedAssignments[editingRoleIndex] = updatedRole;
-        } else {
-            if (roleAssignments.some((r) => r.role_id === roleId)) return;
-            updatedAssignments.push(updatedRole);
-        }
-
-        setRoleAssignments(updatedAssignments);
-        setSelectedRoleId("");
+        // Clear inputs
+        setSelectedRoleId(null);
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
         setEditingRoleIndex(null);
     };
+
+
     const handleSave = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -219,23 +236,23 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         }
 
-        // Create local copy and push last role if needed
+        // 🚨 Build assignments from state + last role input (if any)
         let assignmentsToSave = [...roleAssignments];
 
-        const newRoleNotYetAdded =
+        const hasUnaddedRole =
             selectedRoleId &&
             estimatedRoleHours &&
             selectedRoleEmployees.length > 0 &&
-            !assignmentsToSave.some(r => r.role_id === parseInt(selectedRoleId));
+            !assignmentsToSave.some((r) => r.role_id === parseInt(selectedRoleId));
 
-        if (newRoleNotYetAdded) {
-            const roleObj = rolesFromDB.find(r => r.role_id === parseInt(selectedRoleId));
+        if (hasUnaddedRole) {
+            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
             if (roleObj) {
                 assignmentsToSave.push({
                     role_id: parseInt(selectedRoleId),
                     role_name: roleObj.role_name,
                     estimated_hours: parseInt(estimatedRoleHours),
-                    employees: selectedRoleEmployees.map(e => e.value),
+                    employees: selectedRoleEmployees.map((e) => e.value),
                 });
             }
         }
@@ -243,7 +260,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         try {
             const payload = { ...formData, company_id: companyId };
 
-            // Save or update project
+            // Insert or update the project
             if (editingProject) {
                 await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -264,17 +281,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                await Promise.all(
-                    role.employees.map(emp_id =>
-                        axios.post("/api/projects/assign-employee", {
-                            sow_id: formData.sow_id,
-                            emp_id,
-                            role_id: role.role_id,
-                        }, {
-                            headers: { Authorization: `Bearer ${token}` },
-                        })
-                    )
-                );
+                await Promise.all(role.employees.map(emp_id =>
+                    axios.post("/api/projects/assign-employee", {
+                        sow_id: formData.sow_id,
+                        emp_id,
+                        role_id: role.role_id,
+                    }, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    })
+                ));
             }
 
             await fetchProjects();
