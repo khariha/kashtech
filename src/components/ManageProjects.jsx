@@ -66,12 +66,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const handleEdit = async (proj) => {
         const formatDate = (d) => {
-            try {
-                const date = new Date(d);
-                return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-            } catch {
-                return "";
-            }
+            const dt = new Date(d);
+            return isNaN(dt.getTime()) ? "" : dt.toISOString().split("T")[0];
         };
 
         setEditingProject(proj);
@@ -85,23 +81,59 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         });
 
         try {
-            const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            // ⚠️ IMPORTANT: Correct base URL (port 5000)
+            const assignmentsUrl = `http://20.127.197.227:5000/api/projects/${proj.sow_id}/assignments`;
 
-            const assignmentData = res.data.map(role => ({
-                role_id: parseInt(role.role_id),
-                role_name: role.role_name,
-                estimated_hours: role.estimated_hours,
-                employees: role.employees.map(empId => parseInt(empId))
+            const [assignRes, empRes, roleRes] = await Promise.all([
+                axios.get(assignmentsUrl, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                axios.get(API.FETCH_ALL_EMPLOYEES, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                axios.get(API.FETCH_ROLES, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+            ]);
+
+            const employeesList = empRes.data;
+            const rolesList = roleRes.data;
+
+            const assignmentData = (assignRes.data || []).map(r => ({
+                role_id: +r.role_id,
+                role_name: r.role_name,
+                estimated_hours: +r.estimated_hours,
+                employees: (r.employees || []).map(e => +e),
             }));
 
+            setEmployees(employeesList);
+            setRolesFromDB(rolesList);
             setRoleAssignments(assignmentData);
+
+            if (assignmentData.length > 0) {
+                const first = assignmentData[0];
+                setSelectedRoleId(first.role_id);
+                setEstimatedRoleHours(first.estimated_hours.toString());
+
+                const mapped = first.employees.map(empId => {
+                    const e = employeesList.find(x => x.emp_id === empId);
+                    return e ? { value: e.emp_id, label: `${e.first_name} ${e.last_name}` } : null;
+                }).filter(Boolean);
+
+                setSelectedRoleEmployees(mapped);
+                setEditingRoleIndex(0);
+            } else {
+                setSelectedRoleId(null);
+                setEstimatedRoleHours("");
+                setSelectedRoleEmployees([]);
+                setEditingRoleIndex(null);
+            }
+
         } catch (err) {
-            console.error("Failed to fetch role assignments", err);
+            console.error("Error loading role assignments:", err);
+            alert("Couldn't load project roles – check console/network for issues.");
         }
     };
-
 
     const handleDelete = async (sow_id) => {
         if (!window.confirm("Are you sure you want to delete this project?")) return;
