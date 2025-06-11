@@ -108,26 +108,18 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             setEmployees(employeesList);
             setRolesFromDB(rolesList);
 
-            const assignmentData = assignments.map(role => {
-                const matchedRole = rolesList.find(r => r.role_id === role.role_id);
-                return {
-                    role_id: parseInt(role.role_id),
-                    role_name: matchedRole?.role_name || role.role_name,
-                    estimated_hours: role.estimated_hours,
-                    employees: Array.isArray(role.employees)
-                        ? role.employees.map(empId => parseInt(empId))
-                        : [],
-                };
-            });
+            const assignmentData = assignments.map(role => ({
+                role_id: Number(role.role_id),
+                role_name: role.role_name,
+                estimated_hours: Number(role.estimated_hours),
+                employees: role.employees?.map(empId => Number(empId)) || [],
+            }));
 
             setRoleAssignments(assignmentData);
-
-            // Clear the add-role inputs
-            setSelectedRoleId("");
+            setSelectedRoleId(null);
             setEstimatedRoleHours("");
             setSelectedRoleEmployees([]);
             setEditingRoleIndex(null);
-
         } catch (err) {
             console.error("Failed to fetch role assignments or related data", err);
             alert("Failed to load project roles. Please try again.");
@@ -135,6 +127,10 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
 
+
+    useEffect(() => {
+        console.log("Current roleAssignments", roleAssignments);
+    }, [roleAssignments]);
 
 
     const handleDelete = async (sow_id) => {
@@ -360,7 +356,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                             <button onClick={handleAddRole} className="bg-purple-600 text-white px-4 py-2 rounded">+ Add</button>
                         </div>
-                        {roleAssignments.map((role, index) => (
+                        {roleAssignments.length > 0 && roleAssignments.map((role, index) => (
                             <div key={role.role_id} className="mb-3 border p-3 rounded bg-gray-50">
                                 <div className="flex justify-between items-center mb-2">
                                     <div className="font-semibold">{role.role_name}</div>
@@ -369,7 +365,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                             const confirm = window.confirm(`Remove role ${role.role_name}?`);
                                             if (!confirm) return;
 
-                                            // If editing existing project, remove from DB
                                             if (editingProject) {
                                                 try {
                                                     await axios.delete(`/api/projects/${formData.sow_id}/role/${role.role_id}`, {
@@ -382,7 +377,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                 }
                                             }
 
-                                            // Remove from UI
                                             const updated = [...roleAssignments];
                                             updated.splice(index, 1);
                                             setRoleAssignments(updated);
@@ -391,7 +385,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                     >
                                         Remove
                                     </button>
-
                                 </div>
 
                                 <div className="flex items-center gap-3 mb-2">
@@ -432,6 +425,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                 </div>
                             </div>
                         ))}
+
 
 
 
