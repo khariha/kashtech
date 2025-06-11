@@ -21,6 +21,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     const [estimatedRoleHours, setEstimatedRoleHours] = useState("");
     const [selectedRoleEmployees, setSelectedRoleEmployees] = useState([]);
     const [roleAssignments, setRoleAssignments] = useState([]);
+    const [editingRoleIndex, setEditingRoleIndex] = useState(null);
     const token = localStorage.getItem("token");
 
     useEffect(() => {
@@ -227,21 +228,32 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const handleAddRole = () => {
         if (!selectedRoleId || !estimatedRoleHours || selectedRoleEmployees.length === 0) return;
-        const role = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
-        if (!role || roleAssignments.some((r) => r.role_id === role.role_id)) return;
 
-        setRoleAssignments([
-            ...roleAssignments,
-            {
-                role_id: role.role_id,
-                role_name: role.role_name,
-                estimated_hours: parseInt(estimatedRoleHours),
-                employees: selectedRoleEmployees.map((e) => e.value),
-            },
-        ]);
+        const roleId = parseInt(selectedRoleId);
+        const role = rolesFromDB.find((r) => r.role_id === roleId);
+        if (!role) return;
+
+        const updatedRole = {
+            role_id: roleId,
+            role_name: role.role_name,
+            estimated_hours: parseInt(estimatedRoleHours),
+            employees: selectedRoleEmployees.map(e => e.value),
+        };
+
+        const updatedAssignments = [...roleAssignments];
+
+        if (editingRoleIndex !== null && editingRoleIndex >= 0) {
+            updatedAssignments[editingRoleIndex] = updatedRole;
+        } else {
+            if (roleAssignments.some((r) => r.role_id === roleId)) return;
+            updatedAssignments.push(updatedRole);
+        }
+
+        setRoleAssignments(updatedAssignments);
         setSelectedRoleId("");
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
+        setEditingRoleIndex(null);
     };
 
     return (
