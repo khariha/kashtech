@@ -17,12 +17,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     });
     const [employees, setEmployees] = useState([]);
     const [rolesFromDB, setRolesFromDB] = useState([]);
-    const [selectedRoleId, setSelectedRoleId] = useState("");
+    const [selectedRoleId, setSelectedRoleId] = useState(null);
     const [estimatedRoleHours, setEstimatedRoleHours] = useState("");
     const [selectedRoleEmployees, setSelectedRoleEmployees] = useState([]);
     const [roleAssignments, setRoleAssignments] = useState([]);
     const [editingRoleIndex, setEditingRoleIndex] = useState(null);
     const token = localStorage.getItem("token");
+
 
     useEffect(() => {
         if (companyId) {
@@ -56,7 +57,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const fetchRoles = async () => {
         try {
-            const res = await axios.get("/api/roles", {
+            const res = await axios.get(API.FETCH_ROLES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setRolesFromDB(Array.isArray(res.data) ? res.data : []);
@@ -64,6 +65,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             console.error("Failed to fetch roles", err);
         }
     };
+
 
     const handleEdit = async (proj) => {
         const formatDate = (d) => {
@@ -136,6 +138,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
+
+
+
+
+    useEffect(() => {
+        console.log("Current roleAssignments", roleAssignments);
+    }, [roleAssignments]);
+
+
     const handleDelete = async (sow_id) => {
         if (!window.confirm("Are you sure you want to delete this project?")) return;
         try {
@@ -148,6 +159,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
+    // ✨ Add this to the top of handleSave to auto-include the current role input if not yet added
     const handleSave = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -155,12 +167,30 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-        // Simple validation
-        const requiredFields = ['project_name', 'sow_id', 'original_start_date', 'original_end_date'];
+        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
         for (const field of requiredFields) {
             if (!formData[field]) {
-                alert(`Please fill in ${field.replaceAll('_', ' ')}`);
+                alert(`Please fill in ${field.replaceAll("_", " ")}`);
                 return;
+            }
+        }
+
+        // 🔧 Patch: auto-add role input if user forgot to click "+ Add"
+        if (
+            selectedRoleId &&
+            estimatedRoleHours &&
+            selectedRoleEmployees.length > 0 &&
+            !roleAssignments.some((r) => r.role_id === parseInt(selectedRoleId))
+        ) {
+            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
+            if (roleObj) {
+                const newRole = {
+                    role_id: parseInt(selectedRoleId),
+                    role_name: roleObj.role_name,
+                    estimated_hours: parseInt(estimatedRoleHours),
+                    employees: selectedRoleEmployees.map((e) => e.value),
+                };
+                setRoleAssignments((prev) => [...prev, newRole]);
             }
         }
 
@@ -197,14 +227,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }
             }
 
-            await fetchProjects(); // refresh left side
+            await fetchProjects();
             resetForm();
         } catch (err) {
-            console.error("Save failed", err);
-            const msg = err.response?.data?.error || err.message;
-            alert(`Error: ${msg}`);
+            console.error("Save failed:", err.response?.data || err);
+            alert("Save failed. Check console.");
         }
     };
+
 
 
 
@@ -256,6 +286,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setEditingRoleIndex(null);
     };
 
+
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white rounded-2xl w-[1100px] p-8 relative shadow-lg overflow-y-auto max-h-[90vh]">
@@ -278,6 +309,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         <button onClick={() => handleEdit(proj)}>
                                             <FaEdit className="text-purple-600" />
                                         </button>
+
                                         <button onClick={() => handleDelete(proj.sow_id)}>
                                             <FaTrash className="text-red-600" />
                                         </button>
@@ -326,13 +358,24 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         <div className="mb-4">
                             <label className="block text-sm font-semibold mb-1">Assign Roles</label>
                             <div className="flex gap-2 mb-2">
-                                <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} className="w-1/2 border rounded px-3 py-2">
+                                <select
+                                    value={selectedRoleId ?? ""}
+                                    onChange={(e) => setSelectedRoleId(parseInt(e.target.value))}
+                                    className="w-1/2 border rounded px-3 py-2"
+                                >
                                     <option value="">Select Role</option>
                                     {rolesFromDB.map(role => (
                                         <option key={role.role_id} value={role.role_id}>{role.role_name}</option>
                                     ))}
                                 </select>
-                                <input type="number" placeholder="Estimated Hours" value={estimatedRoleHours} onChange={(e) => setEstimatedRoleHours(e.target.value)} className="w-1/3 border rounded px-3 py-2" />
+
+                                <input
+                                    type="number"
+                                    placeholder="Estimated Hours"
+                                    value={estimatedRoleHours}
+                                    onChange={(e) => setEstimatedRoleHours(e.target.value)}
+                                    className="w-1/3 border rounded px-3 py-2"
+                                />
                             </div>
 
                             <label className="block text-sm mb-1">Select Employees</label>
@@ -349,17 +392,17 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                             <button onClick={handleAddRole} className="bg-purple-600 text-white px-4 py-2 rounded">+ Add</button>
                         </div>
-                        {Array.isArray(roleAssignments) && roleAssignments.length > 0 && (
+                        {Array.isArray(roleAssignments) && roleAssignments.length > 0 ? (
                             roleAssignments.map((role, index) => (
-                                <div key={role.role_id} className="mb-3 border p-3 rounded bg-gray-50">
+                                <div key={`${role.role_id}-${index}`} className="mb-3 border p-3 rounded bg-gray-50">
                                     <div className="flex justify-between items-center mb-2">
-                                        <div className="font-semibold">{role.role_name}</div>
+                                        <div className="font-semibold">{role.role_name || `Role ID ${role.role_id}`}</div>
                                         <button
                                             onClick={async () => {
-                                                const confirm = window.confirm(`Remove role ${role.role_name}?`);
-                                                if (!confirm) return;
-
                                                 if (editingProject) {
+                                                    const confirm = window.confirm(`Remove role ${role.role_name}?`);
+                                                    if (!confirm) return;
+
                                                     try {
                                                         await axios.delete(`/api/projects/${formData.sow_id}/role/${role.role_id}`, {
                                                             headers: { Authorization: `Bearer ${token}` },
@@ -371,7 +414,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                     }
                                                 }
 
-                                                setRoleAssignments(prev => prev.filter((_, i) => i !== index));
+                                                const updated = [...roleAssignments];
+                                                updated.splice(index, 1);
+                                                setRoleAssignments(updated);
                                             }}
                                             className="text-red-600 hover:underline text-sm"
                                         >
@@ -386,12 +431,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                             className="border px-2 py-1 rounded w-32 text-sm"
                                             value={role.estimated_hours}
                                             onChange={(e) => {
-                                                const hours = parseInt(e.target.value) || 0;
-                                                setRoleAssignments(prev =>
-                                                    prev.map((r, i) =>
-                                                        i === index ? { ...r, estimated_hours: hours } : r
-                                                    )
-                                                );
+                                                const updated = [...roleAssignments];
+                                                updated[index].estimated_hours = parseInt(e.target.value) || 0;
+                                                setRoleAssignments(updated);
                                             }}
                                         />
                                     </div>
@@ -406,13 +448,10 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                     return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
                                                 })
                                                 .filter(Boolean)}
-                                            onChange={(selectedOptions) => {
-                                                const selectedEmployeeIds = selectedOptions.map(opt => opt.value);
-                                                setRoleAssignments(prev =>
-                                                    prev.map((r, i) =>
-                                                        i === index ? { ...r, employees: selectedEmployeeIds } : r
-                                                    )
-                                                );
+                                            onChange={(selected) => {
+                                                const updated = [...roleAssignments];
+                                                updated[index].employees = selected.map(opt => opt.value);
+                                                setRoleAssignments(updated);
                                             }}
                                             options={employees.map(emp => ({
                                                 value: emp.emp_id,
@@ -423,8 +462,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                     </div>
                                 </div>
                             ))
+                        ) : (
+                            <div className="text-sm text-gray-500 italic">No roles assigned yet.</div>
                         )}
-
 
 
 
