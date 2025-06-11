@@ -67,7 +67,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
 
-
     const handleEdit = async (proj) => {
         const formatDate = (d) => {
             const dt = new Date(d);
@@ -97,11 +96,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }),
             ]);
 
-            console.log("API assignment response:", assignRes.data); // 💡 log data
-
-            const employeesList = empRes.data;
-            const rolesList = roleRes.data;
-
             const assignmentData = (assignRes.data || []).map(r => ({
                 role_id: +r.role_id,
                 role_name: r.role_name,
@@ -109,34 +103,21 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 employees: (r.employees || []).map(e => +e),
             }));
 
-            console.log("Parsed assignmentData:", assignmentData); // log again
+            const employeesList = empRes.data;
+            const rolesList = roleRes.data;
 
             setEmployees(employeesList);
             setRolesFromDB(rolesList);
             setRoleAssignments(assignmentData);
 
-            // Prefill UI with the first assignment if available
-            if (assignmentData.length > 0) {
-                const first = assignmentData[0];
-                setSelectedRoleId(first.role_id);
-                setEstimatedRoleHours(first.estimated_hours.toString());
-                const mapped = first.employees.map(empId => {
-                    const e = employeesList.find(x => x.emp_id === empId);
-                    return e ? { value: e.emp_id, label: `${e.first_name} ${e.last_name}` } : null;
-                }).filter(Boolean);
-                setSelectedRoleEmployees(mapped);
-                setEditingRoleIndex(0);
-            } else {
-                setSelectedRoleId(null);
-                setEstimatedRoleHours("");
-                setSelectedRoleEmployees([]);
-                setEditingRoleIndex(null);
-            }
+            console.log("✅ Final parsed assignmentData:", assignmentData);
         } catch (err) {
-            console.error("Error in handleEdit:", err.response || err);
+            console.error("❌ Error loading role assignments:", err.response?.data || err);
             alert("Couldn't load project roles – check console/network for issues.");
         }
     };
+
+
 
 
 
