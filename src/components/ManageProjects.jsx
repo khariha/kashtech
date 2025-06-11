@@ -215,7 +215,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         }
 
-        // Step 1: Build assignments list
         let assignmentsToSave = [...roleAssignments];
 
         const roleId = parseInt(selectedRoleId);
@@ -249,7 +248,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         try {
             const payload = { ...formData, company_id: companyId };
 
-            // Step 2: Save or update project
             if (editingProject) {
                 await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -260,7 +258,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 });
             }
 
-            // Step 3: Save role + employee assignments
+            const empRes = await axios.get(API.FETCH_EMPLOYEES_BY_PROJECT(formData.sow_id), {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const currentAssignments = empRes.data; // [{ emp_id, role_id, first_name, last_name, role_name }]
+
             for (const role of assignmentsToSave) {
                 try {
                     console.log("📤 Sending role assignment:", role);
@@ -272,6 +275,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
+                    const newEmpIds = new Set(role.employees);
+
                     await Promise.all(
                         role.employees.map(emp_id => {
                             console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`);
@@ -280,6 +285,21 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                 emp_id,
                                 role_id: role.role_id,
                             }, {
+                                headers: { Authorization: `Bearer ${token}` },
+                            });
+                        })
+                    );
+
+                    const previouslyAssigned = currentAssignments
+                        .filter(e => e.role_id === role.role_id)
+                        .map(e => e.emp_id);
+
+                    const removed = previouslyAssigned.filter(emp_id => !newEmpIds.has(emp_id));
+
+                    await Promise.all(
+                        removed.map(emp_id => {
+                            console.log(`❌ Removing employee ${emp_id} from role ${role.role_id}`);
+                            return axios.delete(API.DELETE_ROLE_EMPLOYEE(formData.sow_id, role.role_id, emp_id), {
                                 headers: { Authorization: `Bearer ${token}` },
                             });
                         })
@@ -297,6 +317,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
