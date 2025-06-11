@@ -88,7 +88,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
         try {
             // Load all data in parallel
-            const assignmentsUrl = `http://20.127.197.227:5000/api/projects/${proj.sow_id}/assignments`;
+            const assignmentsUrl = API.FETCH_ROLE_ASSIGNMENTS(proj.sow_id);
 
             const [assignRes, empRes, roleRes] = await Promise.all([
                 axios.get(assignmentsUrl, {
@@ -143,10 +143,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Couldn't load project roles – check console/network for issues.");
         }
     };
-
-
-
-
 
 
     useEffect(() => {
@@ -294,7 +290,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             for (const role of assignmentsToSave) {
                 try {
                     console.log("📤 Sending role assignment:", role);
-                    await axios.post("http://20.127.197.227:5000/api/projects/assign-role", {
+                    await axios.post(API.ASSIGN_ROLE, {
                         sow_id: formData.sow_id,
                         role_id: role.role_id,
                         estimated_hours: role.estimated_hours,
@@ -305,7 +301,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     await Promise.all(
                         role.employees.map(emp_id => {
                             console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`);
-                            return axios.post("http://20.127.197.227:5000/api/projects/assign-employee", {
+                            return axios.post(API.ASSIGN_EMPLOYEE, {
                                 sow_id: formData.sow_id,
                                 emp_id,
                                 role_id: role.role_id,
@@ -449,7 +445,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                     if (!confirm) return;
 
                                                     try {
-                                                        await axios.delete(`/api/projects/${formData.sow_id}/role/${role.role_id}`, {
+                                                        await axios.delete(API.DELETE_PROJECT_ROLE(formData.sow_id, role.role_id), {
                                                             headers: { Authorization: `Bearer ${token}` },
                                                         });
                                                     } catch (err) {

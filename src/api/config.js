@@ -43,6 +43,11 @@ const API = {
   FETCH_TASKS_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/tasks`,
   FETCH_EMPLOYEES_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/employees`,
 
+  ASSIGN_ROLE: `${BASE_URL}/projects/assign-role`,
+  ASSIGN_EMPLOYEE: `${BASE_URL}/projects/assign-employee`,
+  FETCH_ROLE_ASSIGNMENTS: (sowId) => `${BASE_URL}/projects/${sowId}/assignments`,
+
+
   // 🔄 Project Subcategories & Tasks
   GET_AREAS_BY_PROJECT: (projectId) => `${BASE_URL}/timesheet/areas/${projectId}`,
   GET_TASK_AREAS_BY_PROJECT_AND_WORKAREA: (sowId, workArea) =>
