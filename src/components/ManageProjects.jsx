@@ -17,13 +17,11 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     });
     const [employees, setEmployees] = useState([]);
     const [rolesFromDB, setRolesFromDB] = useState([]);
-    const [selectedRoleId, setSelectedRoleId] = useState(null);
+    const [selectedRoleId, setSelectedRoleId] = useState("");
     const [estimatedRoleHours, setEstimatedRoleHours] = useState("");
     const [selectedRoleEmployees, setSelectedRoleEmployees] = useState([]);
     const [roleAssignments, setRoleAssignments] = useState([]);
-    const [editingRoleIndex, setEditingRoleIndex] = useState(null);
     const token = localStorage.getItem("token");
-
 
     useEffect(() => {
         if (companyId) {
@@ -57,7 +55,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const fetchRoles = async () => {
         try {
-            const res = await axios.get(API.FETCH_ROLES, {
+            const res = await axios.get("/api/roles", {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setRolesFromDB(Array.isArray(res.data) ? res.data : []);
@@ -66,11 +64,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
-
     const handleEdit = async (proj) => {
         const formatDate = (d) => {
-            const dt = new Date(d);
-            return isNaN(dt.getTime()) ? "" : dt.toISOString().split("T")[0];
+            try {
+                const date = new Date(d);
+                return isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
+            } catch {
+                return "";
+            }
         };
 
         setEditingProject(proj);
@@ -84,67 +85,22 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         });
 
         try {
-            // ⚠️ IMPORTANT: Correct base URL (port 5000)
-            const assignmentsUrl = `http://20.127.197.227:5000/api/projects/${proj.sow_id}/assignments`;
+            const res = await axios.get(`/api/projects/${proj.sow_id}/assignments`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
-            const [assignRes, empRes, roleRes] = await Promise.all([
-                axios.get(assignmentsUrl, {
-                    headers: { Authorization: `Bearer ${token}` },
-                }),
-                axios.get(API.FETCH_ALL_EMPLOYEES, {
-                    headers: { Authorization: `Bearer ${token}` },
-                }),
-                axios.get(API.FETCH_ROLES, {
-                    headers: { Authorization: `Bearer ${token}` },
-                }),
-            ]);
-
-            const employeesList = empRes.data;
-            const rolesList = roleRes.data;
-
-            const assignmentData = (assignRes.data || []).map(r => ({
-                role_id: +r.role_id,
-                role_name: r.role_name,
-                estimated_hours: +r.estimated_hours,
-                employees: (r.employees || []).map(e => +e),
+            const assignmentData = res.data.map(role => ({
+                role_id: parseInt(role.role_id),
+                role_name: role.role_name,
+                estimated_hours: role.estimated_hours,
+                employees: role.employees.map(empId => parseInt(empId))
             }));
 
-            setEmployees(employeesList);
-            setRolesFromDB(rolesList);
             setRoleAssignments(assignmentData);
-
-            if (assignmentData.length > 0) {
-                const first = assignmentData[0];
-                setSelectedRoleId(first.role_id);
-                setEstimatedRoleHours(first.estimated_hours.toString());
-
-                const mapped = first.employees.map(empId => {
-                    const e = employeesList.find(x => x.emp_id === empId);
-                    return e ? { value: e.emp_id, label: `${e.first_name} ${e.last_name}` } : null;
-                }).filter(Boolean);
-
-                setSelectedRoleEmployees(mapped);
-                setEditingRoleIndex(0);
-            } else {
-                setSelectedRoleId(null);
-                setEstimatedRoleHours("");
-                setSelectedRoleEmployees([]);
-                setEditingRoleIndex(null);
-            }
-
         } catch (err) {
-            console.error("Error loading role assignments:", err);
-            alert("Couldn't load project roles – check console/network for issues.");
+            console.error("Failed to fetch role assignments", err);
         }
     };
-
-
-
-
-
-    useEffect(() => {
-        console.log("Current roleAssignments", roleAssignments);
-    }, [roleAssignments]);
 
 
     const handleDelete = async (sow_id) => {
@@ -159,7 +115,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
     };
 
-    // ✨ Add this to the top of handleSave to auto-include the current role input if not yet added
     const handleSave = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -167,30 +122,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
+        // Simple validation
+        const requiredFields = ['project_name', 'sow_id', 'original_start_date', 'original_end_date'];
         for (const field of requiredFields) {
             if (!formData[field]) {
-                alert(`Please fill in ${field.replaceAll("_", " ")}`);
+                alert(`Please fill in ${field.replaceAll('_', ' ')}`);
                 return;
-            }
-        }
-
-        // 🔧 Patch: auto-add role input if user forgot to click "+ Add"
-        if (
-            selectedRoleId &&
-            estimatedRoleHours &&
-            selectedRoleEmployees.length > 0 &&
-            !roleAssignments.some((r) => r.role_id === parseInt(selectedRoleId))
-        ) {
-            const roleObj = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
-            if (roleObj) {
-                const newRole = {
-                    role_id: parseInt(selectedRoleId),
-                    role_name: roleObj.role_name,
-                    estimated_hours: parseInt(estimatedRoleHours),
-                    employees: selectedRoleEmployees.map((e) => e.value),
-                };
-                setRoleAssignments((prev) => [...prev, newRole]);
             }
         }
 
@@ -227,14 +164,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }
             }
 
-            await fetchProjects();
+            await fetchProjects(); // refresh left side
             resetForm();
         } catch (err) {
-            console.error("Save failed:", err.response?.data || err);
-            alert("Save failed. Check console.");
+            console.error("Save failed", err);
+            const msg = err.response?.data?.error || err.message;
+            alert(`Error: ${msg}`);
         }
     };
-
 
 
 
@@ -258,34 +195,22 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const handleAddRole = () => {
         if (!selectedRoleId || !estimatedRoleHours || selectedRoleEmployees.length === 0) return;
+        const role = rolesFromDB.find((r) => r.role_id === parseInt(selectedRoleId));
+        if (!role || roleAssignments.some((r) => r.role_id === role.role_id)) return;
 
-        const roleId = parseInt(selectedRoleId);
-        const role = rolesFromDB.find((r) => r.role_id === roleId);
-        if (!role) return;
-
-        const updatedRole = {
-            role_id: roleId,
-            role_name: role.role_name,
-            estimated_hours: parseInt(estimatedRoleHours),
-            employees: selectedRoleEmployees.map(e => e.value),
-        };
-
-        const updatedAssignments = [...roleAssignments];
-
-        if (editingRoleIndex !== null && editingRoleIndex >= 0) {
-            updatedAssignments[editingRoleIndex] = updatedRole;
-        } else {
-            if (roleAssignments.some((r) => r.role_id === roleId)) return;
-            updatedAssignments.push(updatedRole);
-        }
-
-        setRoleAssignments(updatedAssignments);
+        setRoleAssignments([
+            ...roleAssignments,
+            {
+                role_id: role.role_id,
+                role_name: role.role_name,
+                estimated_hours: parseInt(estimatedRoleHours),
+                employees: selectedRoleEmployees.map((e) => e.value),
+            },
+        ]);
         setSelectedRoleId("");
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
-        setEditingRoleIndex(null);
     };
-
 
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
@@ -309,7 +234,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         <button onClick={() => handleEdit(proj)}>
                                             <FaEdit className="text-purple-600" />
                                         </button>
-
                                         <button onClick={() => handleDelete(proj.sow_id)}>
                                             <FaTrash className="text-red-600" />
                                         </button>
@@ -358,24 +282,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         <div className="mb-4">
                             <label className="block text-sm font-semibold mb-1">Assign Roles</label>
                             <div className="flex gap-2 mb-2">
-                                <select
-                                    value={selectedRoleId ?? ""}
-                                    onChange={(e) => setSelectedRoleId(parseInt(e.target.value))}
-                                    className="w-1/2 border rounded px-3 py-2"
-                                >
+                                <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} className="w-1/2 border rounded px-3 py-2">
                                     <option value="">Select Role</option>
                                     {rolesFromDB.map(role => (
                                         <option key={role.role_id} value={role.role_id}>{role.role_name}</option>
                                     ))}
                                 </select>
-
-                                <input
-                                    type="number"
-                                    placeholder="Estimated Hours"
-                                    value={estimatedRoleHours}
-                                    onChange={(e) => setEstimatedRoleHours(e.target.value)}
-                                    className="w-1/3 border rounded px-3 py-2"
-                                />
+                                <input type="number" placeholder="Estimated Hours" value={estimatedRoleHours} onChange={(e) => setEstimatedRoleHours(e.target.value)} className="w-1/3 border rounded px-3 py-2" />
                             </div>
 
                             <label className="block text-sm mb-1">Select Employees</label>
@@ -392,17 +305,17 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                             <button onClick={handleAddRole} className="bg-purple-600 text-white px-4 py-2 rounded">+ Add</button>
                         </div>
-                        {Array.isArray(roleAssignments) && roleAssignments.length > 0 ? (
+                        {Array.isArray(roleAssignments) && roleAssignments.length > 0 && (
                             roleAssignments.map((role, index) => (
-                                <div key={`${role.role_id}-${index}`} className="mb-3 border p-3 rounded bg-gray-50">
+                                <div key={role.role_id} className="mb-3 border p-3 rounded bg-gray-50">
                                     <div className="flex justify-between items-center mb-2">
-                                        <div className="font-semibold">{role.role_name || `Role ID ${role.role_id}`}</div>
+                                        <div className="font-semibold">{role.role_name}</div>
                                         <button
                                             onClick={async () => {
-                                                if (editingProject) {
-                                                    const confirm = window.confirm(`Remove role ${role.role_name}?`);
-                                                    if (!confirm) return;
+                                                const confirm = window.confirm(`Remove role ${role.role_name}?`);
+                                                if (!confirm) return;
 
+                                                if (editingProject) {
                                                     try {
                                                         await axios.delete(`/api/projects/${formData.sow_id}/role/${role.role_id}`, {
                                                             headers: { Authorization: `Bearer ${token}` },
@@ -414,9 +327,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                     }
                                                 }
 
-                                                const updated = [...roleAssignments];
-                                                updated.splice(index, 1);
-                                                setRoleAssignments(updated);
+                                                setRoleAssignments(prev => prev.filter((_, i) => i !== index));
                                             }}
                                             className="text-red-600 hover:underline text-sm"
                                         >
@@ -431,9 +342,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                             className="border px-2 py-1 rounded w-32 text-sm"
                                             value={role.estimated_hours}
                                             onChange={(e) => {
-                                                const updated = [...roleAssignments];
-                                                updated[index].estimated_hours = parseInt(e.target.value) || 0;
-                                                setRoleAssignments(updated);
+                                                const hours = parseInt(e.target.value) || 0;
+                                                setRoleAssignments(prev =>
+                                                    prev.map((r, i) =>
+                                                        i === index ? { ...r, estimated_hours: hours } : r
+                                                    )
+                                                );
                                             }}
                                         />
                                     </div>
@@ -448,10 +362,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                                     return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
                                                 })
                                                 .filter(Boolean)}
-                                            onChange={(selected) => {
-                                                const updated = [...roleAssignments];
-                                                updated[index].employees = selected.map(opt => opt.value);
-                                                setRoleAssignments(updated);
+                                            onChange={(selectedOptions) => {
+                                                const selectedEmployeeIds = selectedOptions.map(opt => opt.value);
+                                                setRoleAssignments(prev =>
+                                                    prev.map((r, i) =>
+                                                        i === index ? { ...r, employees: selectedEmployeeIds } : r
+                                                    )
+                                                );
                                             }}
                                             options={employees.map(emp => ({
                                                 value: emp.emp_id,
@@ -462,9 +379,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                     </div>
                                 </div>
                             ))
-                        ) : (
-                            <div className="text-sm text-gray-500 italic">No roles assigned yet.</div>
                         )}
+
 
 
 
