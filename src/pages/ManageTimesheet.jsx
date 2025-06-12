@@ -71,12 +71,32 @@ const ManageTimesheet = () => {
     const fetchSavedEntries = async () => {
       if (!weekStartDate || !employee) return;
       const formattedDate = format(weekStartDate, "yyyy-MM-dd");
+      const url = API.GET_TIMESHEET_BY_WEEK(employee, formattedDate);
+
+      console.log("🟡 [FETCH] Timesheet for:", {
+        emp_id: employee,
+        weekStartDate,
+        formattedDate,
+        url,
+      });
 
       try {
-        const res = await fetch(API.GET_TIMESHEET_BY_WEEK(employee, formattedDate), {
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await res.json();
+
+        const contentType = res.headers.get("content-type");
+        console.log("📬 Response status:", res.status);
+        console.log("📨 Content-Type:", contentType);
+
+        let data;
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          console.warn("⚠️ Non-JSON response:", text);
+          return;
+        }
 
         console.log("📥 Loaded timesheet data:", data);
 
@@ -105,15 +125,14 @@ const ManageTimesheet = () => {
           }));
 
           const firstEntry = data[0];
+          console.log("🧩 First entry:", firstEntry);
 
-          // ✅ Ensure values are correctly mapped
-          setCompany(firstEntry.company_id ?? "");
-          setProject(firstEntry.sow_id ?? "");
-          setIsBillable(Boolean(firstEntry.billable));
+          if (firstEntry.company_id) setCompany(firstEntry.company_id);
+          if (firstEntry.sow_id) setProject(firstEntry.sow_id);
+          if (typeof firstEntry.billable === "boolean") setIsBillable(firstEntry.billable);
 
           setEntries(formatted);
           setOriginalEntries(formatted);
-          setShowTimesheetFields(true); // 🔑 Important to show the form
         } else {
           console.warn("⚠️ No data returned for timesheet.");
           setEntries([]);
