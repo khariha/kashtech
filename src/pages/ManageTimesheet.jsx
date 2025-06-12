@@ -70,34 +70,21 @@ const ManageTimesheet = () => {
   useEffect(() => {
     const fetchSavedEntries = async () => {
       if (!weekStartDate || !employee) return;
-      const formattedDate = format(weekStartDate, "yyyy-MM-dd");
-      const url = API.GET_TIMESHEET_BY_WEEK(employee, formattedDate);
 
-      console.log("🟡 [FETCH] Timesheet for:", {
+      // Format the date safely as a plain 'yyyy-MM-dd' string
+      const formattedDate = format(new Date(weekStartDate), "yyyy-MM-dd");
+      console.log("[FETCH] Timesheet for:", {
         emp_id: employee,
-        weekStartDate,
+        weekStartDate: weekStartDate,
         formattedDate,
-        url,
       });
 
       try {
-        const res = await fetch(url, {
+        const res = await fetch(API.GET_TIMESHEET_BY_WEEK(employee, formattedDate), {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const contentType = res.headers.get("content-type");
-        console.log("📬 Response status:", res.status);
-        console.log("📨 Content-Type:", contentType);
-
-        let data;
-        if (contentType && contentType.includes("application/json")) {
-          data = await res.json();
-        } else {
-          const text = await res.text();
-          console.warn("⚠️ Non-JSON response:", text);
-          return;
-        }
-
+        const data = await res.json();
         console.log("📥 Loaded timesheet data:", data);
 
         if (Array.isArray(data) && data.length > 0) {
@@ -125,8 +112,6 @@ const ManageTimesheet = () => {
           }));
 
           const firstEntry = data[0];
-          console.log("🧩 First entry:", firstEntry);
-
           if (firstEntry.company_id) setCompany(firstEntry.company_id);
           if (firstEntry.sow_id) setProject(firstEntry.sow_id);
           if (typeof firstEntry.billable === "boolean") setIsBillable(firstEntry.billable);
@@ -145,6 +130,7 @@ const ManageTimesheet = () => {
 
     fetchSavedEntries();
   }, [weekStartDate, employee]);
+
 
 
 

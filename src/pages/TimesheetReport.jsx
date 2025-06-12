@@ -562,7 +562,7 @@ const TimesheetReport = () => {
                                             <button
                                                 onClick={() => {
                                                     localStorage.setItem("edit_emp_id", row.emp_id);
-                                                    localStorage.setItem("edit_week_start", row.period_start_date);
+                                                    localStorage.setItem("edit_week_start", row.period_start_date.slice(0, 10));
                                                     navigate("/manage-timesheet");
                                                 }}
                                                 className="text-xs flex items-center gap-1 text-purple-700 hover:text-purple-900 mx-auto"
