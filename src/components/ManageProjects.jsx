@@ -258,9 +258,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 });
             }
 
-            // Get existing assigned employees (for edit mode only)
+            // ✅ Use correct API to fetch existing assignments (with role_id)
             const existing = editingProject
-                ? await axios.get(API.FETCH_EMPLOYEES_BY_PROJECT(formData.sow_id), {
+                ? await axios.get(API.GET_PROJECT_ASSIGNMENTS(formData.sow_id), {
                     headers: { Authorization: `Bearer ${token}` },
                 }).then(res => res.data)
                 : [];
@@ -269,7 +269,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const groupedOld = {};
             for (const entry of existing) {
                 if (!groupedOld[entry.role_id]) groupedOld[entry.role_id] = new Set();
-                groupedOld[entry.role_id].add(entry.emp_id);
+                for (const emp of entry.employees) {
+                    groupedOld[entry.role_id].add(emp);
+                }
             }
 
             for (const role of assignmentsToSave) {
@@ -283,7 +285,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
-                    // DELETE employees that were removed
+                    // ✅ DELETE removed employees
                     if (editingProject && groupedOld[role.role_id]) {
                         for (const oldEmp of groupedOld[role.role_id]) {
                             if (!role.employees.includes(oldEmp)) {
@@ -295,11 +297,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         }
                     }
 
-                    // Assign only newly added employees
+                    // ✅ Assign new employees
                     const existingEmpSet = new Set(
-                        (existing || [])
-                            .filter(e => e.role_id === role.role_id)
-                            .map(e => e.emp_id)
+                        (existing.find(e => e.role_id === role.role_id)?.employees) || []
                     );
 
                     const toAssign = role.employees.filter(emp_id => !existingEmpSet.has(emp_id));
@@ -329,6 +329,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
