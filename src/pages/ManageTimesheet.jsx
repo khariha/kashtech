@@ -16,7 +16,7 @@ const ManageTimesheet = () => {
   const [employee, setEmployee] = useState("");
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [weekStartDate, setWeekStartDate] = useState(null);
-  
+
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showTimesheetFields, setShowTimesheetFields] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -78,7 +78,7 @@ const ManageTimesheet = () => {
         });
         const data = await res.json();
 
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           console.log("📥 Loaded timesheet data:", data);
           const formatted = data.map((e) => ({
             timesheet_entry_id: e.timesheet_entry_id,
@@ -102,6 +102,13 @@ const ManageTimesheet = () => {
             ],
             period_start_date: formattedDate,
           }));
+
+          // 🟣 Set dropdown values based on first entry
+          const firstEntry = data[0];
+          setCompany(firstEntry.company_id || "");
+          setProject(firstEntry.sow_id || "");
+          setIsBillable(firstEntry.billable);
+
           setEntries(formatted);
           setOriginalEntries(formatted);
         } else {
@@ -112,8 +119,10 @@ const ManageTimesheet = () => {
         console.error("❌ Error fetching timesheet:", err);
       }
     };
+
     fetchSavedEntries();
   }, [weekStartDate, employee]);
+
 
   const handleAddToSheet = ({ company, companyName, project, projectName, workArea, taskArea, ticket }) => {
     if (!company || !project) {
