@@ -264,9 +264,13 @@ const TimesheetReport = () => {
                 const empRes = await axios.get("/api/employees", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                const fullName = (person) =>
+                    `${person.first_name || ""} ${person.last_name || ""}`.trim();
+
                 const sortedEmps = [...empRes.data].sort((a, b) =>
-                    (a.first_name + a.last_name).localeCompare(b.first_name + b.last_name)
+                    fullName(a).localeCompare(fullName(b))
                 );
+
                 setEmployeeList(sortedEmps);
             } catch (error) {
                 console.error("❌ Error fetching lists:", error);
