@@ -105,15 +105,15 @@ const ManageTimesheet = () => {
           }));
 
           const firstEntry = data[0];
-          console.log("🧩 First entry:", firstEntry);
 
-          // ⛳ Set dropdown/toggle values safely
-          if (firstEntry.company_id) setCompany(firstEntry.company_id);
-          if (firstEntry.sow_id) setProject(firstEntry.sow_id);
-          if (typeof firstEntry.billable === "boolean") setIsBillable(firstEntry.billable);
+          // ✅ Ensure values are correctly mapped
+          setCompany(firstEntry.company_id ?? "");
+          setProject(firstEntry.sow_id ?? "");
+          setIsBillable(Boolean(firstEntry.billable));
 
           setEntries(formatted);
           setOriginalEntries(formatted);
+          setShowTimesheetFields(true); // 🔑 Important to show the form
         } else {
           console.warn("⚠️ No data returned for timesheet.");
           setEntries([]);
@@ -126,6 +126,7 @@ const ManageTimesheet = () => {
 
     fetchSavedEntries();
   }, [weekStartDate, employee]);
+
 
 
 
