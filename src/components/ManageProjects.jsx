@@ -247,6 +247,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         try {
             const payload = { ...formData, company_id: companyId };
 
+            // Save or update project
             if (editingProject) {
                 await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -257,37 +258,20 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 });
             }
 
-            // 🔍 Fetch existing employees for all roles in this project (only if editing)
+            // Get existing assigned employees (for edit mode only)
             const existing = editingProject
                 ? await axios.get(API.FETCH_EMPLOYEES_BY_PROJECT(formData.sow_id), {
                     headers: { Authorization: `Bearer ${token}` },
                 }).then(res => res.data)
                 : [];
 
-            // 🧹 Remove unassigned employees (only if editing)
-            if (editingProject && Array.isArray(existing)) {
-                const groupedOld = {};
-                for (const entry of existing) {
-                    if (!groupedOld[entry.role_id]) groupedOld[entry.role_id] = new Set();
-                    groupedOld[entry.role_id].add(entry.emp_id);
-                }
-
-                for (const role of assignmentsToSave) {
-                    const currentSet = new Set(role.employees);
-                    const previousSet = groupedOld[role.role_id] || new Set();
-
-                    for (const oldEmp of previousSet) {
-                        if (!currentSet.has(oldEmp)) {
-                            console.log(`🗑️ Deleting employee ${oldEmp} from role ${role.role_id}`);
-                            await axios.delete(API.DELETE_ROLE_EMPLOYEE(formData.sow_id, role.role_id, oldEmp), {
-                                headers: { Authorization: `Bearer ${token}` },
-                            });
-                        }
-                    }
-                }
+            // Group old employees by role
+            const groupedOld = {};
+            for (const entry of existing) {
+                if (!groupedOld[entry.role_id]) groupedOld[entry.role_id] = new Set();
+                groupedOld[entry.role_id].add(entry.emp_id);
             }
 
-            // 💾 Save assignments
             for (const role of assignmentsToSave) {
                 try {
                     console.log("📤 Sending role assignment:", role);
@@ -299,8 +283,29 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
+                    // DELETE employees that were removed
+                    if (editingProject && groupedOld[role.role_id]) {
+                        for (const oldEmp of groupedOld[role.role_id]) {
+                            if (!role.employees.includes(oldEmp)) {
+                                console.log(`🗑️ Deleting employee ${oldEmp} from role ${role.role_id}`);
+                                await axios.delete(API.DELETE_ROLE_EMPLOYEE(formData.sow_id, role.role_id, oldEmp), {
+                                    headers: { Authorization: `Bearer ${token}` },
+                                });
+                            }
+                        }
+                    }
+
+                    // Assign only newly added employees
+                    const existingEmpSet = new Set(
+                        (existing || [])
+                            .filter(e => e.role_id === role.role_id)
+                            .map(e => e.emp_id)
+                    );
+
+                    const toAssign = role.employees.filter(emp_id => !existingEmpSet.has(emp_id));
+
                     await Promise.all(
-                        role.employees.map(emp_id => {
+                        toAssign.map(emp_id => {
                             console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`);
                             return axios.post(API.ASSIGN_EMPLOYEE, {
                                 sow_id: formData.sow_id,
@@ -324,6 +329,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
@@ -482,28 +488,31 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         <label className="text-sm text-gray-600">Assigned Employees</label>
                                         <Select
                                             isMulti
-                                            value={
-                                                role.employees
-                                                    .map(empId => {
-                                                        const emp = employees.find(e => e.emp_id === empId);
-                                                        return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
-                                                    })
-                                                    .filter(Boolean)
+                                            value={role.employees
+                                                .map(empId => {
+                                                    const emp = employees.find(e => e.emp_id === empId);
+                                                    return emp ? { value: emp.emp_id, label: `${emp.first_name} ${emp.last_name}` } : null;
+                                                })
+                                                .filter(Boolean)
                                             }
-                                            onChange={(selected) => {
-                                                setRoleAssignments(prev => {
-                                                    const updated = [...prev];
-                                                    const newEmployees = selected.map(opt => opt.value);
-                                                    updated[index] = { ...updated[index], employees: newEmployees };
-                                                    return updated;
-                                                });
-                                            }}
                                             options={employees.map(emp => ({
                                                 value: emp.emp_id,
-                                                label: `${emp.first_name} ${emp.last_name}`,
+                                                label: `${emp.first_name} ${emp.last_name}`
                                             }))}
+                                            onChange={(selectedOptions) => {
+                                                const newEmployeeIds = selectedOptions.map(opt => opt.value);
+                                                setRoleAssignments(prev => {
+                                                    const next = [...prev];
+                                                    next[index] = {
+                                                        ...next[index],
+                                                        employees: newEmployeeIds
+                                                    };
+                                                    return next;
+                                                });
+                                            }}
                                             className="mt-1"
                                         />
+
 
                                     </div>
                                 </div>
