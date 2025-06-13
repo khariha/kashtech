@@ -22,7 +22,7 @@ const API = {
   GET_PROJECTS_BY_COMPANY: (companyId) => `${BASE_URL}/timesheet/projects/${companyId}`,
   TIMESHEET_HOURS_REPORT: `${BASE_URL}/timesheet/hours-report`,
   GET_ALL_CLIENTS: `${BASE_URL}/clients`,            
-  GET_ALL_EMPLOYEES: `${BASE_URL}/allemployees`,
+  GET_ALL_EMPLOYEES: `${BASE_URL}/employees/allemployees`,
 
   TIMESHEET_DAILY_HOURS_REPORT: `${BASE_URL}/timesheet/daily-hours-report`,
   TIMESHEET_DAILY_REPORT: `${BASE_URL}/timesheet/daily-report`,

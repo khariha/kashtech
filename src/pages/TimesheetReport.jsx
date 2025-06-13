@@ -228,7 +228,7 @@ const TimesheetReport = () => {
 
     const fetchEmployeeList = async () => {
         try {
-            const res = await axios.get("/api/allemployees", {
+            const res = await axios.get(API.GET_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -277,7 +277,7 @@ const TimesheetReport = () => {
                 }
 
                 // Fetch employees
-                const empRes = await axios.get("/api/allemployees", {
+                const empRes = await axios.get(API.GET_ALL_EMPLOYEES, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const fullName = (person) => {
