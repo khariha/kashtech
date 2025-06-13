@@ -562,13 +562,23 @@ const TimesheetReport = () => {
                                             <button
                                                 onClick={() => {
                                                     localStorage.setItem("edit_emp_id", row.emp_id);
-                                                    localStorage.setItem("edit_week_start", row.period_start_date.slice(0, 10));
+
+                                                    // Normalize to Monday
+                                                    const rawDate = new Date(row.period_start_date);
+                                                    const day = rawDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+                                                    const diffToMonday = day === 0 ? -6 : 1 - day;
+                                                    rawDate.setDate(rawDate.getDate() + diffToMonday);
+
+                                                    const mondayDate = rawDate.toISOString().slice(0, 10);
+                                                    localStorage.setItem("edit_week_start", mondayDate);
+
                                                     navigate("/manage-timesheet");
                                                 }}
                                                 className="text-xs flex items-center gap-1 text-purple-700 hover:text-purple-900 mx-auto"
                                             >
                                                 <FaEdit /> Edit
                                             </button>
+
                                         </td>
                                         <td className="py-2 px-4 text-purple-600 hover:underline text-sm cursor-pointer">
                                             <button onClick={() => toggleRow(idx)}>
