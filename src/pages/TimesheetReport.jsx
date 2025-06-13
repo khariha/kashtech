@@ -267,10 +267,11 @@ const TimesheetReport = () => {
                 });
                 const fullName = (person) =>
                     `${person.first_name || ""} ${person.last_name || ""}`.trim();
-
-                const sortedEmps = [...empRes.data].sort((a, b) =>
+                  
+                  const sortedEmps = [...empRes.data].sort((a, b) =>
                     fullName(a).localeCompare(fullName(b))
-                );
+                  );
+                  
 
                 setEmployeeList(sortedEmps);
             } catch (error) {
