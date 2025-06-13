@@ -71,11 +71,10 @@ const ManageTimesheet = () => {
     const fetchSavedEntries = async () => {
       if (!weekStartDate || !employee) return;
 
-      // Format the date safely as a plain 'yyyy-MM-dd' string
       const formattedDate = format(new Date(weekStartDate), "yyyy-MM-dd");
       console.log("[FETCH] Timesheet for:", {
         emp_id: employee,
-        weekStartDate: weekStartDate,
+        weekStartDate,
         formattedDate,
       });
 
@@ -83,6 +82,15 @@ const ManageTimesheet = () => {
         const res = await fetch(API.GET_TIMESHEET_BY_WEEK(employee, formattedDate), {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          const html = await res.text();
+          console.warn("⚠️ Received HTML instead of JSON. Possible session timeout or server error.");
+          console.log(html);
+          alert("Session expired or server error. Please re-login.");
+          return;
+        }
 
         const data = await res.json();
         console.log("📥 Loaded timesheet data:", data);
@@ -125,11 +133,13 @@ const ManageTimesheet = () => {
         }
       } catch (err) {
         console.error("❌ Error fetching timesheet:", err);
+        alert("Failed to fetch timesheet. Please check console for details.");
       }
     };
 
     fetchSavedEntries();
   }, [weekStartDate, employee]);
+
 
 
 

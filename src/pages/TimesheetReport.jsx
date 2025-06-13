@@ -58,19 +58,27 @@ const TimesheetReport = () => {
                 params.endDate = format(customEndDate, "yyyy-MM-dd");
             }
 
-            // Merge filter parameters from the side panel
             Object.assign(params, customParams);
 
             const res = await axios.get(url, {
                 headers: { Authorization: `Bearer ${token}` },
                 params,
             });
-            setReportData(res.data);
+
+            // 🚨 Check if response is unexpected HTML (e.g., session timeout)
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
+                alert("Session may have expired. Please log in again.");
+                return;
+            }
+
+            setReportData(Array.isArray(res.data) ? res.data : []);
             setCurrentPage(1);
         } catch (err) {
             console.error("❌ Failed to fetch report data", err);
         }
     };
+
 
     useEffect(() => {
         fetchReport();
@@ -267,11 +275,11 @@ const TimesheetReport = () => {
                 });
                 const fullName = (person) =>
                     `${person.first_name || ""} ${person.last_name || ""}`.trim();
-                  
-                  const sortedEmps = [...empRes.data].sort((a, b) =>
+
+                const sortedEmps = [...empRes.data].sort((a, b) =>
                     fullName(a).localeCompare(fullName(b))
-                  );
-                  
+                );
+
 
                 setEmployeeList(sortedEmps);
             } catch (error) {
