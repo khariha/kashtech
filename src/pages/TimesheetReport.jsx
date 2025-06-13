@@ -231,11 +231,18 @@ const TimesheetReport = () => {
             const res = await axios.get("/api/employees", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setEmployeeList(res.data);
+
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("❌ Received HTML instead of JSON for /api/employees");
+                return;
+            }
+
+            setEmployeeList(res.data || []);
         } catch (err) {
             console.error("❌ Error fetching employees", err);
         }
     };
+
 
     const fetchProjectList = async (companyId) => {
         try {
@@ -468,9 +475,9 @@ const TimesheetReport = () => {
                                         >
                                             <option value="">Select Employee</option>
                                             {employeeList
-                                                .filter(emp => emp && (emp.first_name || emp.last_name))
+                                                .filter(emp => emp && emp.emp_id)
                                                 .map((emp) => {
-                                                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
+                                                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() || "Unnamed";
                                                     return (
                                                         <option key={emp.emp_id} value={fullName}>
                                                             {fullName}
@@ -478,6 +485,7 @@ const TimesheetReport = () => {
                                                     );
                                                 })}
                                         </select>
+
 
 
                                         <div className="mt-2 flex flex-wrap gap-1">
