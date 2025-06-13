@@ -9,6 +9,7 @@ import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import API from "../api/config";
+import { startOfWeek } from "date-fns";
 
 const TimesheetReport = () => {
     const [reportData, setReportData] = useState([]);
@@ -566,8 +567,8 @@ const TimesheetReport = () => {
                                                     // Normalize to Monday
                                                     const rawDate = new Date(row.period_start_date);
                                                     const day = rawDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-                                                    const diffToMonday = day === 0 ? -6 : 1 - day;
-                                                    rawDate.setDate(rawDate.getDate() + diffToMonday);
+                                                    const diffToMonday = (day + 6) % 7; // Converts Sunday (0) -> 6, Monday (1) -> 0, ..., Saturday (6) -> 5
+                                                    rawDate.setDate(rawDate.getDate() - diffToMonday);
 
                                                     const mondayDate = rawDate.toISOString().slice(0, 10);
                                                     localStorage.setItem("edit_week_start", mondayDate);
@@ -578,6 +579,7 @@ const TimesheetReport = () => {
                                             >
                                                 <FaEdit /> Edit
                                             </button>
+
 
                                         </td>
                                         <td className="py-2 px-4 text-purple-600 hover:underline text-sm cursor-pointer">
