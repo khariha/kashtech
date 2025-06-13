@@ -5,7 +5,6 @@ import TimesheetForm from "../components/TimesheetForm";
 import TimesheetTable from "../components/TimesheetTable";
 import API from "../api/config";
 import { format } from "date-fns";
-import { startOfWeek } from "date-fns";
 
 const ManageTimesheet = () => {
   const token = localStorage.getItem("token");
@@ -73,7 +72,7 @@ const ManageTimesheet = () => {
       if (!weekStartDate || !employee) return;
 
       // Format the date safely as a plain 'yyyy-MM-dd' string
-      const formattedDate = format(startOfWeek(new Date(weekStartDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
+      const formattedDate = format(new Date(weekStartDate), "yyyy-MM-dd");
       console.log("[FETCH] Timesheet for:", {
         emp_id: employee,
         weekStartDate: weekStartDate,
