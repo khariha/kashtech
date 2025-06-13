@@ -228,12 +228,12 @@ const TimesheetReport = () => {
 
     const fetchEmployeeList = async () => {
         try {
-            const res = await axios.get("/api/employees", {
+            const res = await axios.get("/api/allemployees", {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
             if (res.headers["content-type"]?.includes("text/html")) {
-                console.warn("❌ Received HTML instead of JSON for /api/employees");
+                console.warn("❌ Received HTML instead of JSON for /api/allemployees");
                 return;
             }
 
@@ -277,7 +277,7 @@ const TimesheetReport = () => {
                 }
 
                 // Fetch employees
-                const empRes = await axios.get("/api/employees", {
+                const empRes = await axios.get("/api/allemployees", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const fullName = (person) => {
