@@ -273,12 +273,22 @@ const TimesheetReport = () => {
                 const empRes = await axios.get("/api/employees", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const fullName = (person) =>
-                    `${person.first_name || ""} ${person.last_name || ""}`.trim();
+                const fullName = (person) => {
+                    if (!person || typeof person !== "object") return "";
+                    const first = person?.first_name ?? "";
+                    const last = person?.last_name ?? "";
+                    return `${first} ${last}`.trim();
+                };
 
-                const sortedEmps = [...empRes.data].sort((a, b) =>
+                const filteredEmps = Array.isArray(empRes.data)
+                    ? empRes.data.filter(e => e?.first_name || e?.last_name)
+                    : [];
+
+                const sortedEmps = filteredEmps.sort((a, b) =>
                     fullName(a).localeCompare(fullName(b))
                 );
+
+                setEmployeeList(sortedEmps);
 
 
                 setEmployeeList(sortedEmps);
@@ -457,15 +467,18 @@ const TimesheetReport = () => {
                                             }}
                                         >
                                             <option value="">Select Employee</option>
-                                            {employeeList.map((emp) => {
-                                                const fullName = `${emp.first_name} ${emp.last_name}`;
-                                                return (
-                                                    <option key={emp.emp_id} value={fullName}>
-                                                        {fullName}
-                                                    </option>
-                                                );
-                                            })}
+                                            {employeeList
+                                                .filter(emp => emp && (emp.first_name || emp.last_name))
+                                                .map((emp) => {
+                                                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
+                                                    return (
+                                                        <option key={emp.emp_id} value={fullName}>
+                                                            {fullName}
+                                                        </option>
+                                                    );
+                                                })}
                                         </select>
+
 
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedEmployees.map((emp, idx) => (
