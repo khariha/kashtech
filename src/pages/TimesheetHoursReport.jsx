@@ -188,7 +188,7 @@ const TimesheetHoursReport = () => {
                         {currentData.length > 0 ? (
                             currentData.map((row, idx) => (
                                 <tr key={idx} className="border-b dark:border-gray-700">
-                                    <td className="py-2 px-4">{row.employee_name}</td>
+                                   <td className="py-2 px-4">{row.employee_name || "-"}</td>
                                     <td className="py-2 px-4">{row.company_name}</td>
                                     <td className="py-2 px-4">{row.project_name}</td>
                                     <td className="py-2 px-4">{row.work_area || '-'}</td>
