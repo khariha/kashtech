@@ -38,7 +38,7 @@ const ManageTimesheet = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await fetch(API.FETCH_ALL_EMPLOYEES1, {
+        const res = await fetch(API.GET_ALL_EMPLOYEES, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
