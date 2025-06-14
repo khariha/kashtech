@@ -54,12 +54,14 @@ const TimesheetHeader = ({
         >
           <option value="">Select Employee</option>
           {employeeOptions
+            .filter(emp => emp.full_name && emp.emp_id)
             .sort((a, b) => a.full_name.localeCompare(b.full_name))
             .map((emp) => (
               <option key={emp.emp_id} value={emp.emp_id}>
                 {emp.full_name}
               </option>
             ))}
+
         </select>
       </div>
 
@@ -120,7 +122,7 @@ const TimesheetHeader = ({
           View Report by Weekly Hours
         </button>
       )}
-      
+
       {/*{(userRole === "Admin" || userRole === "Super Admin") && (
         <button
           onClick={() => navigate("/timesheet-hours-report")}
