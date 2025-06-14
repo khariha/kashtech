@@ -103,44 +103,37 @@ const TimesheetReport = () => {
     const applyFilters = () => {
         const params = {};
 
-        // Get actual IDs instead of names
+        // ✅ Clients
         if (selectedClients.length > 0) {
-            const clientIds = clientList
-                .filter(c => selectedClients.includes(c.company_name))
-                .map(c => c.company_id);
-            params.clientIds = clientIds.join(",");
+            params.clients = selectedClients.join(",");
         }
 
+        // ✅ Projects
         if (selectedProjects.length > 0) {
-            const projectIds = projectList
-                .filter(p => selectedProjects.includes(p.project_category))
-                .map(p => p.sow_id);
-            params.projectIds = projectIds.join(",");
+            params.projects = selectedProjects.join(",");
         }
 
+        // ✅ Employees
         if (selectedEmployees.length > 0) {
-            const employeeIds = employeeList
-                .filter(emp => {
-                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
-                    return selectedEmployees.includes(fullName);
-                })
-                .map(emp => emp.emp_id);
-            params.employeeIds = employeeIds.join(",");
+            params.employees = selectedEmployees.join(",");
         }
 
+        // ✅ Billable Status — sent as string
         if (isBillable && !isNonBillable) {
-            params.billable = true;
+            params.billable = "true";  // <-- changed from boolean to string
         } else if (!isBillable && isNonBillable) {
-            params.billable = false;
+            params.billable = "false"; // <-- changed from boolean to string
         }
+        // If both are selected or neither, billable will not be passed (shows all)
 
-        // Date filters
-        const now = new Date();
+        // ✅ Date Filters
         if (filterOption === "monthToDate") {
+            const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
             params.startDate = format(start, "yyyy-MM-dd");
             params.endDate = format(now, "yyyy-MM-dd");
         } else if (filterOption === "lastMonth") {
+            const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const end = new Date(now.getFullYear(), now.getMonth(), 0);
             params.startDate = format(start, "yyyy-MM-dd");
@@ -150,7 +143,8 @@ const TimesheetReport = () => {
             params.endDate = format(customEndDate, "yyyy-MM-dd");
         }
 
-        console.log("📤 Sending filters:", params); // 🔍 debug what’s being sent
+        console.log("📤 Sending filter params:", params);
+
         fetchReport(params);
         setShowFilters(false);
     };
