@@ -95,6 +95,7 @@ const TimesheetReport = () => {
         setSelectedEmployees([]);
         setIsBillable(true);
         setIsNonBillable(false);
+        setReportData([]); // ✅ clear the data grid
     };
 
     const applyFilters = () => {
