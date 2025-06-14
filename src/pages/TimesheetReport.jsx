@@ -103,16 +103,29 @@ const TimesheetReport = () => {
     const applyFilters = () => {
         const params = {};
 
+        // Get actual IDs instead of names
         if (selectedClients.length > 0) {
-            params.clients = selectedClients.join(",");
+            const clientIds = clientList
+                .filter(c => selectedClients.includes(c.company_name))
+                .map(c => c.company_id);
+            params.clientIds = clientIds.join(",");
         }
 
         if (selectedProjects.length > 0) {
-            params.projects = selectedProjects.join(",");
+            const projectIds = projectList
+                .filter(p => selectedProjects.includes(p.project_category))
+                .map(p => p.sow_id);
+            params.projectIds = projectIds.join(",");
         }
 
         if (selectedEmployees.length > 0) {
-            params.employees = selectedEmployees.join(",");
+            const employeeIds = employeeList
+                .filter(emp => {
+                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
+                    return selectedEmployees.includes(fullName);
+                })
+                .map(emp => emp.emp_id);
+            params.employeeIds = employeeIds.join(",");
         }
 
         if (isBillable && !isNonBillable) {
@@ -121,14 +134,13 @@ const TimesheetReport = () => {
             params.billable = false;
         }
 
-        // Include date filters
+        // Date filters
+        const now = new Date();
         if (filterOption === "monthToDate") {
-            const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
             params.startDate = format(start, "yyyy-MM-dd");
             params.endDate = format(now, "yyyy-MM-dd");
         } else if (filterOption === "lastMonth") {
-            const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const end = new Date(now.getFullYear(), now.getMonth(), 0);
             params.startDate = format(start, "yyyy-MM-dd");
@@ -138,7 +150,8 @@ const TimesheetReport = () => {
             params.endDate = format(customEndDate, "yyyy-MM-dd");
         }
 
-        fetchReport(params); // Call fetch with filters
+        console.log("📤 Sending filters:", params); // 🔍 debug what’s being sent
+        fetchReport(params);
         setShowFilters(false);
     };
 
