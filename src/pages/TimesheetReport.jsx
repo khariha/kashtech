@@ -140,10 +140,7 @@ const TimesheetReport = () => {
     };
 
 
-    // ...rest of your unchanged TimesheetReport component code
-    useEffect(() => {
-        fetchReport();
-    }, [filterOption, customStartDate, customEndDate]);
+
 
     const toggleRow = (idx) => {
         setExpandedRows((prev) =>
@@ -254,6 +251,7 @@ const TimesheetReport = () => {
             console.error("❌ Error fetching projects", err);
         }
     };
+
     useEffect(() => {
         const fetchInitialLists = async () => {
             try {
@@ -392,12 +390,15 @@ const TimesheetReport = () => {
                                             className="w-full border px-2 py-1 text-sm rounded"
                                             onChange={async (e) => {
                                                 const selectedClient = e.target.value;
-                                                setSelectedClients([...selectedClients, selectedClient]);
+
+                                                if (selectedClient && !selectedClients.includes(selectedClient)) {
+                                                    setSelectedClients([selectedClient]);  // ✅ Safely update
+                                                    setSelectedProjects([]);               // 🔄 Reset
+                                                    setProjectList([]);                    // 🔄 Clear
+                                                }
 
                                                 const selectedObj = clientList.find(c => c.company_name === selectedClient);
                                                 if (selectedObj?.company_id) {
-                                                    setSelectedCompanyId(selectedObj.company_id);
-
                                                     try {
                                                         const projRes = await axios.get(
                                                             API.GET_PROJECTS_BY_COMPANY(selectedObj.company_id),
@@ -423,6 +424,7 @@ const TimesheetReport = () => {
                                                 </option>
                                             ))}
                                         </select>
+
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedClients.map((client, idx) => (
                                                 <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 text-xs rounded-full">
@@ -432,23 +434,25 @@ const TimesheetReport = () => {
                                             ))}
                                         </div>
 
-                                        <select
-                                            className="w-full mt-2 border px-2 py-1 text-sm rounded"
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (val && !selectedProjects.includes(val)) {
-                                                    setSelectedProjects([...selectedProjects, val]);
-                                                }
-                                                e.target.selectedIndex = 0;
-                                            }}
-                                        >
-                                            <option value="">Select Project</option>
-                                            {projectList.map((proj) => (
-                                                <option key={proj.sow_id} value={proj.project_category}>
-                                                    {proj.project_category}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        {selectedClients.length > 0 && projectList.length > 0 && (
+                                            <select
+                                                className="w-full mt-2 border px-2 py-1 text-sm rounded"
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val && !selectedProjects.includes(val)) {
+                                                        setSelectedProjects([...selectedProjects, val]);
+                                                    }
+                                                    e.target.selectedIndex = 0;
+                                                }}
+                                            >
+                                                <option value="">Select Project</option>
+                                                {projectList.map((proj) => (
+                                                    <option key={proj.sow_id} value={proj.project_category}>
+                                                        {proj.project_category}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
 
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedProjects.map((proj, idx) => (
