@@ -39,22 +39,35 @@ const TimesheetHoursReport = () => {
             const res = await axios.get("/api/allemployees", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const fullName = (emp) => {
-                const first = typeof emp.first_name === "string" ? emp.first_name : "";
-                const last = typeof emp.last_name === "string" ? emp.last_name : "";
+
+            // 🚫 Handle session timeout or unexpected HTML response
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
+                alert("Session may have expired. Please log in again.");
+                return;
+            }
+
+            // ✅ Safe full name function
+            const getFullName = (emp) => {
+                const first = typeof emp?.first_name === "string" ? emp.first_name : "";
+                const last = typeof emp?.last_name === "string" ? emp.last_name : "";
                 return `${first} ${last}`.trim();
             };
+
             const filteredEmps = Array.isArray(res.data)
-                ? res.data.filter((e) => e?.first_name || e?.last_name)
+                ? res.data.filter(emp => emp && (emp.first_name || emp.last_name))
                 : [];
+
             const sortedEmps = filteredEmps.sort((a, b) =>
-                fullName(a).localeCompare(fullName(b))
+                getFullName(a).localeCompare(getFullName(b))
             );
+
             setEmployeeList(sortedEmps);
         } catch (err) {
             console.error("❌ Failed to fetch employees", err);
         }
     };
+
 
     useEffect(() => {
         fetchEmployees();
