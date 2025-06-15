@@ -192,14 +192,6 @@ const DailyTimesheetReport = () => {
     const currentData = sortedData.slice(indexOfFirst, indexOfLast);
     const totalPages = Math.ceil(sortedData.length / itemsPerPage);
 
-    const handleExportExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(reportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Timesheet");
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-        saveAs(new Blob([excelBuffer]), "timesheet_report.xlsx");
-    };
-
     useEffect(() => {
         const fetchDropdownData = async () => {
             try {
@@ -653,14 +645,14 @@ const DailyTimesheetReport = () => {
 
                 <div className="flex gap-2 mt-4 md:mt-0">
                     <CSVLink
-                        data={reportData}
+                        data={handleExportCSV}
                         filename="timesheet_report.csv"
                         className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export CSV
                     </CSVLink>
                     <button
-                        onClick={handleExportExcel}
+                        onClick={handleExportDailyExcel}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export Excel
