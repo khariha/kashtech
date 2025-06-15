@@ -259,11 +259,15 @@ const DailyTimesheetReport = () => {
             await fetchProjectList(selectedObj.company_id);
         }
     };
+
     useEffect(() => {
         const fetchInitialLists = async () => {
             try {
-                const billableFlag = isBillable && !isNonBillable ? true :
-                    !isBillable && isNonBillable ? false : null;
+                const billableFlag = isBillable && !isNonBillable
+                    ? true
+                    : !isBillable && isNonBillable
+                        ? false
+                        : null;
 
                 // Fetch clients by billable status
                 if (billableFlag !== null) {
@@ -281,13 +285,23 @@ const DailyTimesheetReport = () => {
                     setClientList([]);
                 }
 
-                // Fetch employees
-                const empRes = await axios.get("/api/employees", {
+                // Fetch employees using GET_ALL_EMPLOYEES constant
+                const empRes = await axios.get(API.GET_ALL_EMPLOYEES, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const sortedEmps = [...empRes.data].sort((a, b) =>
-                    (a.first_name + a.last_name).localeCompare(b.first_name + b.last_name)
-                );
+
+                const fullName = (emp) => {
+                    const first = typeof emp.first_name === "string" ? emp.first_name : "";
+                    const last = typeof emp.last_name === "string" ? emp.last_name : "";
+                    return `${first} ${last}`.trim();
+                };
+
+                const sortedEmps = Array.isArray(empRes.data)
+                    ? empRes.data
+                        .filter(emp => emp && (typeof emp.first_name === "string" || typeof emp.last_name === "string"))
+                        .sort((a, b) => fullName(a).localeCompare(fullName(b)))
+                    : [];
+
                 setEmployeeList(sortedEmps);
             } catch (error) {
                 console.error("❌ Error fetching lists:", error);
