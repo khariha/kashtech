@@ -34,22 +34,18 @@ const TimesheetHoursReport = () => {
         fetchReport();
     }, [filterOption, customStartDate, customEndDate]);
 
+    import API from "../api/config"; // Make sure this import exists
+
     const fetchEmployees = async () => {
         try {
-            const res = await axios.get("/api/allemployees", {
+            const res = await axios.get(API.GET_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // 🧪 Debug log to inspect response content
-            console.log("🧪 API response from /api/allemployees:", res.data);
-
-            // Check for HTML response (likely session timeout or server misroute)
-            if (
-                typeof res.data !== "object" ||
-                (typeof res.data === "string" && res.data.startsWith("<!DOCTYPE"))
-            ) {
-                console.warn("⚠️ Unexpected response:", res.data);
-                alert("Failed to fetch employees. Server returned invalid or unexpected content.");
+            // ❗ Check for unexpected HTML response (e.g., session expired)
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
+                alert("Session may have expired. Please log in again.");
                 return;
             }
 
@@ -60,17 +56,17 @@ const TimesheetHoursReport = () => {
             };
 
             const filteredEmps = Array.isArray(res.data)
-                ? res.data.filter(emp => typeof emp === "object" && (emp.first_name || emp.last_name))
+                ? res.data.filter(emp => emp && (emp.first_name || emp.last_name))
                 : [];
 
             const sortedEmps = filteredEmps.sort((a, b) =>
                 getFullName(a).localeCompare(getFullName(b))
             );
 
+            console.log("✅ Employee List Loaded:", sortedEmps);
             setEmployeeList(sortedEmps);
         } catch (err) {
             console.error("❌ Failed to fetch employees", err);
-            alert("Something went wrong while fetching employee list.");
         }
     };
 
