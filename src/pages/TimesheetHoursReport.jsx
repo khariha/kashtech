@@ -40,14 +40,19 @@ const TimesheetHoursReport = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // 🚫 Handle session timeout or unexpected HTML response
-            if (res.headers["content-type"]?.includes("text/html")) {
-                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
-                alert("Session may have expired. Please log in again.");
+            // 🧪 Debug log to inspect response content
+            console.log("🧪 API response from /api/allemployees:", res.data);
+
+            // Check for HTML response (likely session timeout or server misroute)
+            if (
+                typeof res.data !== "object" ||
+                (typeof res.data === "string" && res.data.startsWith("<!DOCTYPE"))
+            ) {
+                console.warn("⚠️ Unexpected response:", res.data);
+                alert("Failed to fetch employees. Server returned invalid or unexpected content.");
                 return;
             }
 
-            // ✅ Safe full name function
             const getFullName = (emp) => {
                 const first = typeof emp?.first_name === "string" ? emp.first_name : "";
                 const last = typeof emp?.last_name === "string" ? emp.last_name : "";
@@ -55,7 +60,7 @@ const TimesheetHoursReport = () => {
             };
 
             const filteredEmps = Array.isArray(res.data)
-                ? res.data.filter(emp => emp && (emp.first_name || emp.last_name))
+                ? res.data.filter(emp => typeof emp === "object" && (emp.first_name || emp.last_name))
                 : [];
 
             const sortedEmps = filteredEmps.sort((a, b) =>
@@ -65,8 +70,11 @@ const TimesheetHoursReport = () => {
             setEmployeeList(sortedEmps);
         } catch (err) {
             console.error("❌ Failed to fetch employees", err);
+            alert("Something went wrong while fetching employee list.");
         }
     };
+
+
 
 
     useEffect(() => {
