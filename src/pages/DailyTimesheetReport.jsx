@@ -50,21 +50,30 @@ const DailyTimesheetReport = () => {
             const res = await axios.get(API.GET_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
             if (res.headers["content-type"]?.includes("text/html")) {
                 console.warn("⚠️ Session timeout or unexpected HTML response.");
                 return;
             }
-            const fullName = (emp) => `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
-            const valid = (val) => typeof val === "string";
-            const cleaned = (res.data || []).filter(
-                (e) => valid(e.first_name) || valid(e.last_name)
+
+            const fullName = (emp) => {
+                const first = typeof emp.first_name === "string" ? emp.first_name : "";
+                const last = typeof emp.last_name === "string" ? emp.last_name : "";
+                return `${first} ${last}`.trim();
+            };
+
+            const cleaned = (Array.isArray(res.data) ? res.data : []).filter(
+                (e) => typeof e === "object" && (typeof e.first_name === "string" || typeof e.last_name === "string")
             );
+
             const sorted = cleaned.sort((a, b) => fullName(a).localeCompare(fullName(b)));
             setEmployeeList(sorted);
         } catch (err) {
             console.error("❌ Error fetching employees", err);
         }
     };
+
+
     const clearAllFilters = () => {
         setSelectedClients([]);
         setSelectedProjects([]);
@@ -665,6 +674,10 @@ const DailyTimesheetReport = () => {
                     </thead>
                     <tbody>
                         {currentData.map((row, idx) => {
+                            if (!row || !row.period_start_date || isNaN(new Date(row.period_start_date))) {
+                                return null; // Skip rendering invalid rows
+                            }
+
                             const isExpanded = expandedRows.includes(idx);
                             const showNote = visibleNotes.includes(idx);
                             const totalHours =
