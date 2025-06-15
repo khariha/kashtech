@@ -40,33 +40,34 @@ const TimesheetHoursReport = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // ❗ Check for unexpected HTML response (e.g., session expired)
+            // Handle unexpected HTML response
             if (res.headers["content-type"]?.includes("text/html")) {
                 console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
                 alert("Session may have expired. Please log in again.");
                 return;
             }
 
-            const getFullName = (emp) => {
-                const first = typeof emp?.first_name === "string" ? emp.first_name : "";
-                const last = typeof emp?.last_name === "string" ? emp.last_name : "";
-                return `${first} ${last}`.trim();
+            const employees = Array.isArray(res.data) ? res.data : [];
+
+            console.log("✅ Raw employee data:", employees);
+
+            const fullName = (emp) => {
+                const first = emp?.first_name ?? "";
+                const last = emp?.last_name ?? "";
+                return String(first).trim() + " " + String(last).trim();
             };
 
-            const filteredEmps = Array.isArray(res.data)
-                ? res.data.filter(emp => emp && (emp.first_name || emp.last_name))
-                : [];
+            const sortedEmps = employees
+                .filter(emp => emp && (emp.first_name || emp.last_name))
+                .sort((a, b) => fullName(a).localeCompare(fullName(b)));
 
-            const sortedEmps = filteredEmps.sort((a, b) =>
-                getFullName(a).localeCompare(getFullName(b))
-            );
-
-            console.log("✅ Employee List Loaded:", sortedEmps);
             setEmployeeList(sortedEmps);
         } catch (err) {
-            console.error("❌ Failed to fetch employees", err);
+            console.error("❌ Error fetching employee list:", err);
         }
     };
+
+
 
 
 
@@ -167,7 +168,7 @@ const TimesheetHoursReport = () => {
     return (
         <div className="min-h-screen text-gray-800 dark:text-white px-6 py-6">
             <h2 className="text-4xl font-bold mb-6 text-purple-900 dark:text-white">
-                Timesheet Report by Weekly Hours
+                Timesheet Report by Weekly Hours Test
             </h2>
 
             <div className="flex justify-between items-center mb-4 flex-wrap">
