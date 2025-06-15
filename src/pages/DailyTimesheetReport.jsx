@@ -1,5 +1,3 @@
-// ✅ Fully Updated DailyTimesheetReport.jsx with TimesheetReport-style Filter Logic
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -7,72 +5,89 @@ import { FaEdit } from "react-icons/fa";
 import { format } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { saveAs } from "file-saver";
+import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import API from "../api/config";
+import { startOfWeek } from "date-fns";
 
 const DailyTimesheetReport = () => {
     const [reportData, setReportData] = useState([]);
-    const [employeeList, setEmployeeList] = useState([]);
-    const [clientList, setClientList] = useState([]);
-    const [projectList, setProjectList] = useState([]);
-
+    const [expandedRows, setExpandedRows] = useState([]);
+    const [visibleNotes, setVisibleNotes] = useState([]);
+    const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
+    const [showFilters, setShowFilters] = useState(false);
     const [filterOption, setFilterOption] = useState("monthToDate");
     const [customStartDate, setCustomStartDate] = useState(null);
     const [customEndDate, setCustomEndDate] = useState(null);
+    const [selectedType, setSelectedType] = useState("");
     const [selectedClients, setSelectedClients] = useState([]);
     const [selectedProjects, setSelectedProjects] = useState([]);
     const [selectedEmployees, setSelectedEmployees] = useState([]);
     const [isBillable, setIsBillable] = useState(true);
     const [isNonBillable, setIsNonBillable] = useState(false);
+    const [clientList, setClientList] = useState([]);
+    const [projectList, setProjectList] = useState([]);
+    const [employeeList, setEmployeeList] = useState([]);
+    const [selectedCompanyId, setSelectedCompanyId] = useState(null);
 
-    const token = localStorage.getItem("token");
-    const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
 
-    const [expandedRows, setExpandedRows] = useState([]);
-    const [visibleNotes, setVisibleNotes] = useState([]);
-    const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
-    const [showFilters, setShowFilters] = useState(false);
+    const token = localStorage.getItem("token");
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchEmployeeList();
-        fetchClientList();
-    }, []);
-
-    useEffect(() => {
-        applyFilters();
-    }, [filterOption, customStartDate, customEndDate, selectedClients, selectedProjects, selectedEmployees, isBillable, isNonBillable]);
-
-    const fetchEmployeeList = async () => {
+    const fetchReport = async (customParams = {}) => {
         try {
-            const res = await axios.get(API.GET_ALL_EMPLOYEES, {
+            let url = API.TIMESHEET_DAILY_REPORT;
+            let params = {};
+
+            if (filterOption === "monthToDate") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(now, "yyyy-MM-dd");
+            } else if (filterOption === "lastMonth") {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const end = new Date(now.getFullYear(), now.getMonth(), 0);
+                params.startDate = format(start, "yyyy-MM-dd");
+                params.endDate = format(end, "yyyy-MM-dd");
+            } else if (filterOption === "customRange" && customStartDate && customEndDate) {
+                params.startDate = format(customStartDate, "yyyy-MM-dd");
+                params.endDate = format(customEndDate, "yyyy-MM-dd");
+            }
+
+            Object.assign(params, customParams);
+
+            const res = await axios.get(url, {
                 headers: { Authorization: `Bearer ${token}` },
+                params,
             });
 
+            // 🚨 Check if response is unexpected HTML (e.g., session timeout)
             if (res.headers["content-type"]?.includes("text/html")) {
-                console.warn("⚠️ Session timeout or unexpected HTML response.");
+                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
+                alert("Session may have expired. Please log in again.");
                 return;
             }
 
-            const fullName = (emp) => {
-                const first = typeof emp.first_name === "string" ? emp.first_name : "";
-                const last = typeof emp.last_name === "string" ? emp.last_name : "";
-                return `${first} ${last}`.trim();
-            };
-
-            const cleaned = (Array.isArray(res.data) ? res.data : []).filter(
-                (e) => typeof e === "object" && (typeof e.first_name === "string" || typeof e.last_name === "string")
-            );
-
-            const sorted = cleaned.sort((a, b) => fullName(a).localeCompare(fullName(b)));
-            setEmployeeList(sorted);
+            setReportData(Array.isArray(res.data) ? res.data : []);
+            setCurrentPage(1);
         } catch (err) {
-            console.error("❌ Error fetching employees", err);
+            console.error("❌ Failed to fetch report data", err);
         }
     };
 
+
+    useEffect(() => {
+        fetchReport();
+    }, [filterOption, customStartDate, customEndDate]);
+
+    useEffect(() => {
+        fetchClientList();
+        fetchEmployeeList();
+    }, []);
 
     const clearAllFilters = () => {
         setSelectedClients([]);
@@ -80,38 +95,38 @@ const DailyTimesheetReport = () => {
         setSelectedEmployees([]);
         setIsBillable(true);
         setIsNonBillable(false);
+
+        fetchReport(); // ✅ fetch base data again with default params
     };
 
-    // ✅ Refined filter params to avoid empty string issues and to sync with backend expectations
-    const applyFilters = async () => {
+
+    const applyFilters = () => {
         const params = {};
 
+        // ✅ Clients
         if (selectedClients.length > 0) {
             params.clients = selectedClients.join(",");
         }
 
+        // ✅ Projects
         if (selectedProjects.length > 0) {
             params.projects = selectedProjects.join(",");
         }
 
+        // ✅ Employees
         if (selectedEmployees.length > 0) {
-            params.emp_ids = selectedEmployees
-                .map((name) => {
-                    const match = employeeList.find(
-                        (emp) => `${emp.first_name} ${emp.last_name}` === name
-                    );
-                    return match?.emp_id;
-                })
-                .filter(Boolean)
-                .join(",");
+            params.employees = selectedEmployees.join(",");
         }
 
+        // ✅ Billable Status — sent as string
         if (isBillable && !isNonBillable) {
-            params.billable = true;
+            params.billable = "true";  // <-- changed from boolean to string
         } else if (!isBillable && isNonBillable) {
-            params.billable = false;
+            params.billable = "false"; // <-- changed from boolean to string
         }
+        // If both are selected or neither, billable will not be passed (shows all)
 
+        // ✅ Date Filters
         if (filterOption === "monthToDate") {
             const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -128,23 +143,13 @@ const DailyTimesheetReport = () => {
             params.endDate = format(customEndDate, "yyyy-MM-dd");
         }
 
-        try {
-            const res = await axios.get(API.TIMESHEET_DAILY_HOURS_REPORT, {
-                headers: { Authorization: `Bearer ${token}` },
-                params,
-            });
-            setReportData(Array.isArray(res.data) ? res.data : []);
-        } catch (err) {
-            console.error("❌ Error fetching report data", err);
-            setReportData([]);
-        }
+        console.log("📤 Sending filter params:", params);
+
+        fetchReport(params);
+        setShowFilters(false);
     };
 
 
-    // ...rest of your unchanged TimesheetReport component code
-    useEffect(() => {
-        applyFilters();
-    }, [filterOption, customStartDate, customEndDate]);
 
 
     const toggleRow = (idx) => {
@@ -187,67 +192,63 @@ const DailyTimesheetReport = () => {
     const currentData = sortedData.slice(indexOfFirst, indexOfLast);
     const totalPages = Math.ceil(sortedData.length / itemsPerPage);
 
+    const handleExportExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(reportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Timesheet");
+        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+        saveAs(new Blob([excelBuffer]), "timesheet_report.xlsx");
+    };
 
     useEffect(() => {
         const fetchDropdownData = async () => {
             try {
                 const token = localStorage.getItem("token");
 
-                const [clientsRes, employeesRes] = await Promise.all([
+                const [clientsRes, projectsRes, employeesRes] = await Promise.all([
                     axios.get(API.GET_ALL_CLIENTS, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(API.GET_ALL_PROJECTS, { headers: { Authorization: `Bearer ${token}` } }),
                     axios.get(API.GET_ALL_EMPLOYEES, { headers: { Authorization: `Bearer ${token}` } }),
                 ]);
 
                 setClientList(clientsRes.data);
+                setProjectList(projectsRes.data);
                 setEmployeeList(employeesRes.data);
-
-                // ❌ DO NOT pre-fetch all projects — only fetch when a client is selected
-                // setProjectList([]); // optional to reset project list initially
-
             } catch (err) {
                 console.error("❌ Error loading dropdown data", err);
             }
         };
-
 
         fetchDropdownData();
     }, []);
 
     const fetchClientList = async () => {
         try {
-            const res = await axios.get(API.GET_ALL_CLIENTS, {
+            const res = await axios.get("/api/timesheet/companies?billable=true", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            if (Array.isArray(res.data)) {
-                const sorted = res.data.sort((a, b) =>
-                    a.company_name.localeCompare(b.company_name)
-                );
-                setClientList(sorted);
-            } else {
-                console.warn("⚠️ Unexpected client list response");
-            }
+            setClientList(res.data);
         } catch (err) {
             console.error("❌ Error fetching clients", err);
         }
     };
 
-
-    const fetchProjectList = async (companyId) => {
-        if (!companyId) return;
+    const fetchEmployeeList = async () => {
         try {
-            const res = await axios.get(API.GET_PROJECTS_BY_COMPANY(companyId), {
+            const res = await axios.get(API.GET_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const sorted = res.data.sort((a, b) =>
-                a.project_category.localeCompare(b.project_category)
-            );
-            setProjectList(sorted);
+
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("❌ Received HTML instead of JSON for /api/allemployees");
+                return;
+            }
+
+            setEmployeeList(res.data || []);
         } catch (err) {
-            console.error("❌ Error fetching projects", err);
+            console.error("❌ Error fetching employees", err);
         }
     };
-
-
     // Dropdown onChange updated to use API constant
     const handleClientChange = async (e) => {
         const selectedClient = e.target.value;
@@ -260,14 +261,22 @@ const DailyTimesheetReport = () => {
         }
     };
 
+    const fetchProjectList = async (companyId) => {
+        try {
+            const res = await axios.get(`/api/timesheet/projects/${companyId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setProjectList(res.data);
+        } catch (err) {
+            console.error("❌ Error fetching projects", err);
+        }
+    };
+
     useEffect(() => {
         const fetchInitialLists = async () => {
             try {
-                const billableFlag = isBillable && !isNonBillable
-                    ? true
-                    : !isBillable && isNonBillable
-                        ? false
-                        : null;
+                const billableFlag = isBillable && !isNonBillable ? true :
+                    !isBillable && isNonBillable ? false : null;
 
                 // Fetch clients by billable status
                 if (billableFlag !== null) {
@@ -285,22 +294,27 @@ const DailyTimesheetReport = () => {
                     setClientList([]);
                 }
 
-                // Fetch employees using GET_ALL_EMPLOYEES constant
+                // Fetch employees
                 const empRes = await axios.get(API.GET_ALL_EMPLOYEES, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-
-                const fullName = (emp) => {
-                    const first = typeof emp.first_name === "string" ? emp.first_name : "";
-                    const last = typeof emp.last_name === "string" ? emp.last_name : "";
+                const fullName = (person) => {
+                    if (!person || typeof person !== "object") return "";
+                    const first = person?.first_name ?? "";
+                    const last = person?.last_name ?? "";
                     return `${first} ${last}`.trim();
                 };
 
-                const sortedEmps = Array.isArray(empRes.data)
-                    ? empRes.data
-                        .filter(emp => emp && (typeof emp.first_name === "string" || typeof emp.last_name === "string"))
-                        .sort((a, b) => fullName(a).localeCompare(fullName(b)))
+                const filteredEmps = Array.isArray(empRes.data)
+                    ? empRes.data.filter(e => e?.first_name || e?.last_name)
                     : [];
+
+                const sortedEmps = filteredEmps.sort((a, b) =>
+                    fullName(a).localeCompare(fullName(b))
+                );
+
+                setEmployeeList(sortedEmps);
+
 
                 setEmployeeList(sortedEmps);
             } catch (error) {
@@ -310,8 +324,6 @@ const DailyTimesheetReport = () => {
 
         fetchInitialLists();
     }, [isBillable, isNonBillable]);
-
-
     // ✅ UPDATED FRONTEND FUNCTION
     const handleExportDailyExcel = async () => {
         try {
@@ -424,8 +436,6 @@ const DailyTimesheetReport = () => {
             console.error("❌ Failed to export CSV:", err);
         }
     };
-
-
     return (
         <div className="min-h-screen text-gray-800 dark:text-white px-6 py-6">
             {/* Rest of your JSX stays unchanged... */}
@@ -511,44 +521,40 @@ const DailyTimesheetReport = () => {
                                             className="w-full border px-2 py-1 text-sm rounded"
                                             onChange={async (e) => {
                                                 const selectedClient = e.target.value;
-                                                if (!selectedClient || selectedClients.includes(selectedClient)) return;
 
-                                                setSelectedClients([...selectedClients, selectedClient]);
+                                                if (selectedClient && !selectedClients.includes(selectedClient)) {
+                                                    setSelectedClients([selectedClient]);  // ✅ Safely update
+                                                    setSelectedProjects([]);               // 🔄 Reset
+                                                    setProjectList([]);                    // 🔄 Clear
+                                                }
 
-                                                const selectedObj = clientList.find(
-                                                    (c) => c.company_name === selectedClient
-                                                );
-
+                                                const selectedObj = clientList.find(c => c.company_name === selectedClient);
                                                 if (selectedObj?.company_id) {
-                                                    const companyId = selectedObj.company_id;
-                                                    setSelectedCompanyId(companyId);
-
                                                     try {
-                                                        const projectsRes = await axios.get(API.GET_PROJECTS_BY_COMPANY(companyId), {
-                                                            headers: { Authorization: `Bearer ${token}` },
-                                                        });
-
-                                                        const sortedProjects = [...projectsRes.data].sort((a, b) =>
+                                                        const projRes = await axios.get(
+                                                            API.GET_PROJECTS_BY_COMPANY(selectedObj.company_id),
+                                                            {
+                                                                headers: { Authorization: `Bearer ${token}` },
+                                                            }
+                                                        );
+                                                        const sortedProjects = [...projRes.data].sort((a, b) =>
                                                             a.project_category.localeCompare(b.project_category)
                                                         );
-
                                                         setProjectList(sortedProjects);
                                                     } catch (err) {
                                                         console.error("❌ Error fetching projects", err);
                                                     }
                                                 }
                                             }}
+
                                         >
                                             <option value="">Select Client</option>
-                                            {Array.isArray(clientList) &&
-                                                clientList.map((client) => (
-                                                    <option key={client.company_id} value={client.company_name}>
-                                                        {client.company_name}
-                                                    </option>
-                                                ))}
-
+                                            {clientList.map((client) => (
+                                                <option key={client.company_id} value={client.company_name}>
+                                                    {client.company_name}
+                                                </option>
+                                            ))}
                                         </select>
-
 
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedClients.map((client, idx) => (
@@ -559,23 +565,25 @@ const DailyTimesheetReport = () => {
                                             ))}
                                         </div>
 
-                                        <select
-                                            className="w-full mt-2 border px-2 py-1 text-sm rounded"
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (val && !selectedProjects.includes(val)) {
-                                                    setSelectedProjects([...selectedProjects, val]);
-                                                }
-                                                e.target.selectedIndex = 0;
-                                            }}
-                                        >
-                                            <option value="">Select Project</option>
-                                            {projectList.map((proj) => (
-                                                <option key={proj.sow_id} value={proj.project_category}>
-                                                    {proj.project_category}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        {selectedClients.length > 0 && projectList.length > 0 && (
+                                            <select
+                                                className="w-full mt-2 border px-2 py-1 text-sm rounded"
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val && !selectedProjects.includes(val)) {
+                                                        setSelectedProjects([...selectedProjects, val]);
+                                                    }
+                                                    e.target.selectedIndex = 0;
+                                                }}
+                                            >
+                                                <option value="">Select Project</option>
+                                                {projectList.map((proj) => (
+                                                    <option key={proj.sow_id} value={proj.project_category}>
+                                                        {proj.project_category}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
 
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedProjects.map((proj, idx) => (
@@ -601,15 +609,19 @@ const DailyTimesheetReport = () => {
                                             }}
                                         >
                                             <option value="">Select Employee</option>
-                                            {employeeList.map((emp) => {
-                                                const fullName = `${emp.first_name} ${emp.last_name}`;
-                                                return (
-                                                    <option key={emp.emp_id} value={fullName}>
-                                                        {fullName}
-                                                    </option>
-                                                );
-                                            })}
+                                            {employeeList
+                                                .filter(emp => emp && emp.emp_id)
+                                                .map((emp) => {
+                                                    const fullName = `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim() || "Unnamed";
+                                                    return (
+                                                        <option key={emp.emp_id} value={fullName}>
+                                                            {fullName}
+                                                        </option>
+                                                    );
+                                                })}
                                         </select>
+
+
 
                                         <div className="mt-2 flex flex-wrap gap-1">
                                             {selectedEmployees.map((emp, idx) => (
@@ -640,20 +652,19 @@ const DailyTimesheetReport = () => {
                 </div>
 
                 <div className="flex gap-2 mt-4 md:mt-0">
-                    <button
-                        onClick={handleExportCSV}
+                    <CSVLink
+                        data={reportData}
+                        filename="timesheet_report.csv"
                         className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export CSV
-                    </button>
-
+                    </CSVLink>
                     <button
-                        onClick={handleExportDailyExcel}
+                        onClick={handleExportExcel}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export Excel
                     </button>
-
                     <button
                         onClick={() => navigate("/manage-timesheet")}
                         className="bg-[#F97316] hover:bg-[#ea670a] text-white font-bold py-2 px-5 rounded-full text-sm shadow-sm transition-all"
@@ -688,10 +699,6 @@ const DailyTimesheetReport = () => {
                     </thead>
                     <tbody>
                         {currentData.map((row, idx) => {
-                            if (!row || !row.period_start_date || isNaN(new Date(row.period_start_date))) {
-                                return null; // Skip rendering invalid rows
-                            }
-
                             const isExpanded = expandedRows.includes(idx);
                             const showNote = visibleNotes.includes(idx);
                             const totalHours =
@@ -721,13 +728,24 @@ const DailyTimesheetReport = () => {
                                             <button
                                                 onClick={() => {
                                                     localStorage.setItem("edit_emp_id", row.emp_id);
-                                                    localStorage.setItem("edit_week_start", row.period_start_date);
+
+                                                    // Normalize to Monday
+                                                    const rawDate = new Date(row.period_start_date);
+                                                    const day = rawDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+                                                    const diffToMonday = (day + 6) % 7; // Converts Sunday (0) -> 6, Monday (1) -> 0, ..., Saturday (6) -> 5
+                                                    rawDate.setDate(rawDate.getDate() - diffToMonday);
+
+                                                    const mondayDate = rawDate.toISOString().slice(0, 10);
+                                                    localStorage.setItem("edit_week_start", mondayDate);
+
                                                     navigate("/manage-timesheet");
                                                 }}
                                                 className="text-xs flex items-center gap-1 text-purple-700 hover:text-purple-900 mx-auto"
                                             >
                                                 <FaEdit /> Edit
                                             </button>
+
+
                                         </td>
                                         <td className="py-2 px-4 text-purple-600 hover:underline text-sm cursor-pointer">
                                             <button onClick={() => toggleRow(idx)}>
@@ -825,4 +843,4 @@ const DailyTimesheetReport = () => {
     );
 };
 
-export default DailyTimesheetReport;
+export default TimesheetReport;
