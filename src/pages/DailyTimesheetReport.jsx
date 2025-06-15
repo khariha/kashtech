@@ -843,4 +843,4 @@ const DailyTimesheetReport = () => {
     );
 };
 
-export default TimesheetReport;
+export default DailyTimesheetReport;
