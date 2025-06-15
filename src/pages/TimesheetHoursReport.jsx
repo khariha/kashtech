@@ -34,8 +34,6 @@ const TimesheetHoursReport = () => {
         fetchReport();
     }, [filterOption, customStartDate, customEndDate]);
 
-    import API from "../api/config"; // Make sure this import exists
-
     const fetchEmployees = async () => {
         try {
             const res = await axios.get(API.GET_ALL_EMPLOYEES, {
