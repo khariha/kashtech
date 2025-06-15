@@ -644,13 +644,13 @@ const DailyTimesheetReport = () => {
                 </div>
 
                 <div className="flex gap-2 mt-4 md:mt-0">
-                    <CSVLink
-                        data={handleExportCSV}
-                        filename="timesheet_report.csv"
+                    <button
+                        onClick={handleExportCSV}
                         className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded text-sm"
                     >
                         Export CSV
-                    </CSVLink>
+                    </button>
+
                     <button
                         onClick={handleExportDailyExcel}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm"
