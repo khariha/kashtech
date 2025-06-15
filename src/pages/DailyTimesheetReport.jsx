@@ -30,12 +30,12 @@ const DailyTimesheetReport = () => {
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
-    
+
     const [expandedRows, setExpandedRows] = useState([]);
     const [visibleNotes, setVisibleNotes] = useState([]);
     const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
     const [showFilters, setShowFilters] = useState(false);
-    
+
     useEffect(() => {
         fetchEmployeeList();
         fetchClientList();
@@ -126,8 +126,9 @@ const DailyTimesheetReport = () => {
 
     // ...rest of your unchanged TimesheetReport component code
     useEffect(() => {
-        fetchReport();
+        applyFilters();
     }, [filterOption, customStartDate, customEndDate]);
+
 
     const toggleRow = (idx) => {
         setExpandedRows((prev) =>
