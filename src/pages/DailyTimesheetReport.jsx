@@ -1,3 +1,5 @@
+// ✅ Fully Updated DailyTimesheetReport.jsx with TimesheetReport-style Filter Logic
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -5,76 +7,57 @@ import { FaEdit } from "react-icons/fa";
 import { format } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { CSVLink } from "react-csv";
-import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
 import API from "../api/config";
 
 const DailyTimesheetReport = () => {
     const [reportData, setReportData] = useState([]);
-    const [expandedRows, setExpandedRows] = useState([]);
-    const [visibleNotes, setVisibleNotes] = useState([]);
-    const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
-    const [showFilters, setShowFilters] = useState(false);
+    const [employeeList, setEmployeeList] = useState([]);
+    const [clientList, setClientList] = useState([]);
+    const [projectList, setProjectList] = useState([]);
+
     const [filterOption, setFilterOption] = useState("monthToDate");
     const [customStartDate, setCustomStartDate] = useState(null);
     const [customEndDate, setCustomEndDate] = useState(null);
-    const [selectedType, setSelectedType] = useState("");
-
     const [selectedClients, setSelectedClients] = useState([]);
     const [selectedProjects, setSelectedProjects] = useState([]);
     const [selectedEmployees, setSelectedEmployees] = useState([]);
     const [isBillable, setIsBillable] = useState(true);
     const [isNonBillable, setIsNonBillable] = useState(false);
-    const [clientList, setClientList] = useState([]);
-    const [projectList, setProjectList] = useState([]);
-    const [employeeList, setEmployeeList] = useState([]);
-    const [selectedCompanyId, setSelectedCompanyId] = useState(null);
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 15;
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchEmployeeList();
+        fetchClientList();
+    }, []);
+
+    useEffect(() => {
+        applyFilters();
+    }, [filterOption, customStartDate, customEndDate]);
 
     const fetchEmployeeList = async () => {
         try {
             const res = await axios.get(API.GET_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
             if (res.headers["content-type"]?.includes("text/html")) {
-                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
-                alert("Session may have expired. Please log in again.");
+                console.warn("⚠️ Session timeout or unexpected HTML response.");
                 return;
             }
-
-            const isString = (val) => typeof val === "string";
-            const fullName = (emp) => {
-                const first = isString(emp?.first_name) ? emp.first_name : "";
-                const last = isString(emp?.last_name) ? emp.last_name : "";
-                return `${first} ${last}`.trim();
-            };
-
-            const sortedEmps = (Array.isArray(res.data) ? res.data : [])
-                .filter((emp) => emp && (isString(emp.first_name) || isString(emp.last_name)))
-                .sort((a, b) => fullName(a).localeCompare(fullName(b)));
-
-            setEmployeeList(sortedEmps);
+            const fullName = (emp) => `${emp.first_name ?? ""} ${emp.last_name ?? ""}`.trim();
+            const valid = (val) => typeof val === "string";
+            const cleaned = (res.data || []).filter(
+                (e) => valid(e.first_name) || valid(e.last_name)
+            );
+            const sorted = cleaned.sort((a, b) => fullName(a).localeCompare(fullName(b)));
+            setEmployeeList(sorted);
         } catch (err) {
             console.error("❌ Error fetching employees", err);
         }
     };
-
-    useEffect(() => {
-        fetchReport();
-    }, [filterOption, customStartDate, customEndDate]);
-
-    useEffect(() => {
-        fetchClientList();
-        fetchEmployeeList();
-    }, []);
-
     const clearAllFilters = () => {
         setSelectedClients([]);
         setSelectedProjects([]);
@@ -83,7 +66,7 @@ const DailyTimesheetReport = () => {
         setIsNonBillable(false);
     };
 
-    const applyFilters = () => {
+    const applyFilters = async () => {
         const params = {};
 
         if (selectedClients.length > 0) {
@@ -104,7 +87,6 @@ const DailyTimesheetReport = () => {
             params.billable = false;
         }
 
-        // Include date filters
         if (filterOption === "monthToDate") {
             const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -121,9 +103,18 @@ const DailyTimesheetReport = () => {
             params.endDate = format(customEndDate, "yyyy-MM-dd");
         }
 
-        fetchReport(params); // Call fetch with filters
-        setShowFilters(false);
+        try {
+            const res = await axios.get(API.TIMESHEET_DAILY_HOURS_REPORT, {
+                headers: { Authorization: `Bearer ${token}` },
+                params,
+            });
+            setReportData(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error("❌ Error fetching report data", err);
+            setReportData([]);
+        }
     };
+
 
 
     // ...rest of your unchanged TimesheetReport component code
@@ -199,47 +190,33 @@ const DailyTimesheetReport = () => {
 
     const fetchClientList = async () => {
         try {
-            const res = await axios.get("/api/timesheet/companies?billable=true", {
+            const res = await axios.get(API.GET_ALL_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
             if (Array.isArray(res.data)) {
-                setClientList(res.data);
+                const sorted = res.data.sort((a, b) =>
+                    a.company_name.localeCompare(b.company_name)
+                );
+                setClientList(sorted);
             } else {
-                console.warn("⚠️ Unexpected response:", res.data);
-                setClientList([]);
+                console.warn("⚠️ Unexpected client list response");
             }
         } catch (err) {
             console.error("❌ Error fetching clients", err);
-            setClientList([]);
         }
     };
 
-
-
-    const fetchEmployeeList = async () => {
-        try {
-            const res = await axios.get("/api/employees", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setEmployeeList(res.data);
-        } catch (err) {
-            console.error("❌ Error fetching employees", err);
-        }
-    };
 
     const fetchProjectList = async (companyId) => {
         if (!companyId) return;
-
         try {
             const res = await axios.get(API.GET_PROJECTS_BY_COMPANY(companyId), {
                 headers: { Authorization: `Bearer ${token}` },
             });
-
-            const sortedProjects = [...res.data].sort((a, b) =>
+            const sorted = res.data.sort((a, b) =>
                 a.project_category.localeCompare(b.project_category)
             );
-            setProjectList(sortedProjects);
+            setProjectList(sorted);
         } catch (err) {
             console.error("❌ Error fetching projects", err);
         }
@@ -415,7 +392,7 @@ const DailyTimesheetReport = () => {
             {/* Rest of your JSX stays unchanged... */}
 
             <h2 className="text-4xl font-bold mb-6 text-purple-900 dark:text-white">
-                Timesheet Report by Weekly Hours
+                Timesheet Report by Daily Hours
             </h2>
 
             <div className="flex justify-between items-center mb-6 flex-wrap">
