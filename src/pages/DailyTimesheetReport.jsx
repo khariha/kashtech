@@ -28,7 +28,14 @@ const DailyTimesheetReport = () => {
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
-
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
+    
+    const [expandedRows, setExpandedRows] = useState([]);
+    const [visibleNotes, setVisibleNotes] = useState([]);
+    const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
+    const [showFilters, setShowFilters] = useState(false);
+    
     useEffect(() => {
         fetchEmployeeList();
         fetchClientList();
