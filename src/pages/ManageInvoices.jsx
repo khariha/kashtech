@@ -32,11 +32,15 @@ const ManageInvoices = () => {
             const res = await axios.get(API.FETCH_ALL_INVOICES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setInvoices(res.data || []);
+    
+            // ✅ Defensive check
+            const invoiceArray = Array.isArray(res.data) ? res.data : [];
+            setInvoices(invoiceArray);
         } catch (err) {
             console.error("❌ Failed to fetch invoices:", err);
         }
     };
+    
 
     const fetchDropdownData = async () => {
         try {
@@ -44,8 +48,9 @@ const ManageInvoices = () => {
                 axios.get(API.GET_ALL_COMPANIES, { headers: { Authorization: `Bearer ${token}` } }),
                 axios.get(API.FETCH_ROLES, { headers: { Authorization: `Bearer ${token}` } }),
             ]);
-            setCompanies(companyRes.data);
-            setRoles(roleRes.data);
+            setCompanies(Array.isArray(companyRes.data) ? companyRes.data : []);
+            setRoles(Array.isArray(roleRes.data) ? roleRes.data : []);
+            
         } catch (error) {
             console.error("Error loading dropdowns", error);
         }
@@ -71,7 +76,7 @@ const ManageInvoices = () => {
             if (!sowId) return;
             const res = await axios.get(API.GET_EMPLOYEES_BY_PROJECT(sowId), {
                 headers: { Authorization: `Bearer ${token}` },
-            });
+            });    
             setEmployees(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("❌ Failed to load employees:", err);
@@ -105,7 +110,7 @@ const ManageInvoices = () => {
         setSortOrder(order);
     };
 
-    const filteredInvoices = invoices.filter((inv) =>
+    const filteredInvoices = (Array.isArray(invoices) ? invoices : []).filter((inv) =>
         inv.company_name?.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -173,7 +178,7 @@ const ManageInvoices = () => {
                         </tr>
                     </thead>
                     <tbody className="text-gray-700 dark:text-white">
-                        {paginatedInvoices.map((inv, index) => {
+                    {(Array.isArray(paginatedInvoices) ? paginatedInvoices : []).map((inv, index) => {
                             const status = getStatus(inv.due_date);
                             const key = `${inv.invoice_id}-${inv.company_id}-${index}`;
                             return (

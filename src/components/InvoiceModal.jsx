@@ -24,7 +24,8 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                 const res = await axios.get("/api/invoices/companies", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setCompanies(res.data);
+                setCompanies(Array.isArray(res.data) ? res.data : []);
+
             } catch (err) {
                 console.error("Error loading companies", err);
             }
@@ -41,7 +42,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             const res = await axios.get(`/api/projects/company/${companyId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setProjects(res.data);
+            setProjects(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch projects", err);
         }
@@ -66,7 +67,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                     endDate: endDate.toISOString(),
                 },
             });
-            groupDataByProject(res.data);
+            groupDataByProject(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Failed to fetch invoice data", err);
             alert("Error: " + (err.response?.data?.error || "Unable to load invoice data"));
@@ -116,35 +117,43 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
         setExpandedUser((prev) => ({ ...prev, [key]: !prev[key] }));
     };
 
+    const [saving, setSaving] = useState(false);
     const handleSave = async () => {
         if (!selectedCompany || !selectedProjects.length || !startDate || !endDate || !dueDate) {
             alert("Please fill all mandatory fields.");
             return;
         }
 
+        const details = Object.entries(groupedData || {}).flatMap(([projectKey, rows]) =>
+            Array.isArray(rows) ? rows.map(row => ({
+                emp_id: row.emp_id,
+                sow_id: row.sow_id,
+                rate: parseFloat(row.rate || 0),
+                total_hrs: parseFloat(row.hours || 0),
+                amount: parseFloat(calculateAmount(row.hours, row.rate)),
+                resource_role: row.role,
+                sub_assignment_title: row.work_area,
+                sub_assignment_segment1: row.task_area
+            })) : []
+        );
+
+        if (details.length === 0) {
+            alert("No invoice data to save. Make sure to apply filters and enter rates.");
+            return;
+        }
+
         const payload = {
             company_id: selectedCompany,
             attention_to: "",
-            invoice_num: "INV-" + Date.now(),
-            invoice_period_start: startDate,
-            invoice_period_end: endDate,
-            due_date: dueDate,
+            invoice_num: `INV-${Date.now()}`,
+            invoice_period_start: startDate.toISOString(),
+            invoice_period_end: endDate.toISOString(),
+            due_date: dueDate.toISOString(),
             tax_rate: parseFloat(taxRate),
             internal_notes: "",
             external_notes: "",
             grand_total: parseFloat(calculateInvoiceTotal()),
-            details: Object.entries(groupedData).flatMap(([projectKey, rows]) =>
-                rows.map(row => ({
-                    emp_id: row.emp_id,
-                    sow_id: row.sow_id,
-                    rate: parseFloat(row.rate || 0),
-                    total_hrs: parseFloat(row.hours || 0),
-                    amount: parseFloat(calculateAmount(row.hours, row.rate)),
-                    resource_role: row.role,
-                    sub_assignment_title: row.work_area,
-                    sub_assignment_segment1: row.task_area
-                }))
-            ),
+            details
         };
 
         console.log("🟢 Sending payload:", payload);
@@ -154,10 +163,15 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             const res = await axios.post("/api/invoices", payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
+            if (!res.data || !res.data.invoice_id) {
+                throw new Error("Server did not return expected response.");
+            }
+
             console.log("✅ Invoice saved", res.data);
             alert("Invoice saved successfully!");
 
-            // Reset form
+            // Reset form state
             setSelectedCompany("");
             setSelectedProjects([]);
             setStartDate(null);
@@ -167,13 +181,9 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             setGroupedData({});
             setExpandedUser({});
 
-            // ✅ Trigger parent updates if provided
-            if (typeof onInvoiceSaved === "function") {
-                onInvoiceSaved();
-            }
-            if (typeof onClose === "function") {
-                onClose();
-            }
+            // Callback triggers
+            onInvoiceSaved?.();
+            onClose?.();
 
         } catch (err) {
             console.error("❌ Failed to save invoice:", err);
@@ -196,7 +206,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                     <label className="block text-sm font-semibold mb-1">Company</label>
                     <select className="w-full border rounded px-3 py-2" value={selectedCompany} onChange={(e) => handleCompanyChange(e.target.value)}>
                         <option value="">Select Company</option>
-                        {companies.map((c) => (
+                        {(Array.isArray(companies) ? companies : []).map((c) => (
                             <option key={c.company_id} value={c.company_id}>{c.company_name}</option>
                         ))}
                     </select>
@@ -206,10 +216,11 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                     <label className="block text-sm font-semibold mb-1">Project</label>
                     <Select
                         isMulti
-                        options={projects.map((p) => ({
+                        options={(Array.isArray(projects) ? projects : []).map((p) => ({
                             label: `${p.project_name}`,
                             value: p.sow_id,
                         }))}
+
                         value={selectedProjects}
                         onChange={(opts) => setSelectedProjects(opts)}
                     />
@@ -315,7 +326,14 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
             <div className="text-right mt-4 space-x-4">
                 <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete</button>
-                <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
+                <button
+                    onClick={handleSave}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    disabled={saving}
+                >
+                    {saving ? "Saving..." : "Save"}
+                </button>
+
             </div>
         </div>
     );
