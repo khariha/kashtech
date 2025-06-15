@@ -37,38 +37,32 @@ const DailyTimesheetReport = () => {
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
-    const fetchReport = async (customParams = {}) => {
+    const fetchEmployeeList = async () => {
         try {
-            let url = API.TIMESHEET_DAILY_REPORT;
-            let params = {};
+            const res = await axios.get(API.GET_ALL_EMPLOYEES, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            if (filterOption === "monthToDate") {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                params.startDate = format(start, "yyyy-MM-dd");
-                params.endDate = format(now, "yyyy-MM-dd");
-            } else if (filterOption === "lastMonth") {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                const end = new Date(now.getFullYear(), now.getMonth(), 0);
-                params.startDate = format(start, "yyyy-MM-dd");
-                params.endDate = format(end, "yyyy-MM-dd");
-            } else if (filterOption === "customRange" && customStartDate && customEndDate) {
-                params.startDate = format(customStartDate, "yyyy-MM-dd");
-                params.endDate = format(customEndDate, "yyyy-MM-dd");
+            if (res.headers["content-type"]?.includes("text/html")) {
+                console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
+                alert("Session may have expired. Please log in again.");
+                return;
             }
 
-            // Merge filter parameters from the side panel
-            Object.assign(params, customParams);
+            const isString = (val) => typeof val === "string";
+            const fullName = (emp) => {
+                const first = isString(emp?.first_name) ? emp.first_name : "";
+                const last = isString(emp?.last_name) ? emp.last_name : "";
+                return `${first} ${last}`.trim();
+            };
 
-            const res = await axios.get(url, {
-                headers: { Authorization: `Bearer ${token}` },
-                params,
-            });
-            setReportData(res.data);
-            setCurrentPage(1);
+            const sortedEmps = (Array.isArray(res.data) ? res.data : [])
+                .filter((emp) => emp && (isString(emp.first_name) || isString(emp.last_name)))
+                .sort((a, b) => fullName(a).localeCompare(fullName(b)));
+
+            setEmployeeList(sortedEmps);
         } catch (err) {
-            console.error("❌ Failed to fetch report data", err);
+            console.error("❌ Error fetching employees", err);
         }
     };
 
