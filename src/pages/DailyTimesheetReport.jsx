@@ -43,7 +43,7 @@ const DailyTimesheetReport = () => {
 
     useEffect(() => {
         applyFilters();
-    }, [filterOption, customStartDate, customEndDate]);
+    }, [filterOption, customStartDate, customEndDate, selectedClients, selectedProjects, selectedEmployees, isBillable, isNonBillable]);
 
     const fetchEmployeeList = async () => {
         try {
@@ -73,6 +73,7 @@ const DailyTimesheetReport = () => {
         setIsNonBillable(false);
     };
 
+    // ✅ Refined filter params to avoid empty string issues and to sync with backend expectations
     const applyFilters = async () => {
         const params = {};
 
@@ -85,7 +86,15 @@ const DailyTimesheetReport = () => {
         }
 
         if (selectedEmployees.length > 0) {
-            params.employees = selectedEmployees.join(",");
+            params.emp_ids = selectedEmployees
+                .map((name) => {
+                    const match = employeeList.find(
+                        (emp) => `${emp.first_name} ${emp.last_name}` === name
+                    );
+                    return match?.emp_id;
+                })
+                .filter(Boolean)
+                .join(",");
         }
 
         if (isBillable && !isNonBillable) {
@@ -121,7 +130,6 @@ const DailyTimesheetReport = () => {
             setReportData([]);
         }
     };
-
 
 
     // ...rest of your unchanged TimesheetReport component code
