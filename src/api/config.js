@@ -94,6 +94,7 @@ GET_PROJECTS_BY_COMPANY_INVOICE: (companyId) => `${BASE_URL}/projects/company/${
 GET_EMPLOYEES_BY_PROJECT: (sowId) => `${BASE_URL}/invoices/employees/by-project/${sowId}`,
 GET_ROLES_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/roles`,
 GET_EMPLOYEES_BY_PROJECT_AND_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/roles/${roleId}/employees`,
+GET_ALL_COMPANIES_INVOICE: `${BASE_URL}/invoices/companies`,
 
 };
 

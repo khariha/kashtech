@@ -21,7 +21,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
         const fetchCompanies = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get("/api/invoices/companies", {
+                const res = await axios.get(API.GET_ALL_COMPANIES_INVOICE, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -47,7 +47,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/projects/company/${companyId}`, {
+            const res = await axios.get(API.GET_PROJECTS_BY_COMPANY_INVOICE(companyId), {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
