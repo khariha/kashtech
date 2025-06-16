@@ -41,7 +41,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
     }, []);
 
     const handleCompanyChange = async (companyIdRaw) => {
-        const companyId = Number(companyIdRaw); // Ensure it's a number
+        const companyId = companyIdRaw; // ← fix here: don't cast to Number
         setSelectedCompany(companyId);
         setSelectedProjects([]);
         setGroupedData({});
@@ -63,6 +63,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             console.error("❌ Failed to fetch projects", err);
         }
     };
+
 
 
 
@@ -230,7 +231,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
                     <label className="block text-sm font-semibold mb-1">Company</label>
-                    <select className="w-full border rounded px-3 py-2" value={selectedCompany} onChange={(e) => handleCompanyChange(Number(e.target.value))}>
+                    <select className="w-full border rounded px-3 py-2" value={selectedCompany} onChange={(e) => handleCompanyChange(e.target.value)}>
                         <option value="">Select Company</option>
                         {(Array.isArray(companies) ? companies : []).map((c) => (
                             <option key={c.company_id} value={c.company_id}>{c.company_name}</option>
