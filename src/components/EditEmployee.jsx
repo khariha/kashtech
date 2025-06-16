@@ -26,7 +26,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
       "emp_location_city", "emp_location_state",
       "emp_location_country", "employee_zip_code"
     ];
-  
+
     for (let field of requiredFields) {
       if (!String(formData[field] || "").trim()) {
         setError("Please fill out all required fields.");
@@ -35,26 +35,25 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
     }
     return true;
   };
-  
+
 
   const handleSave = async () => {
     if (!validateForm()) return;
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.put(API.GET_EMPLOYEE_BY_ID(empId),
-        formData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await axios.put(API.GET_EMPLOYEE_BY_ID(formData.emp_id), formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setSuccess("Employee updated successfully!");
       onUpdate(res.data);
       setTimeout(onClose, 1200);
     } catch (err) {
+      console.error("❌ Update error:", err);
       setError("Update failed. Please try again.");
     }
   };
+
 
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
