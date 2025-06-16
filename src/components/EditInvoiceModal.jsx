@@ -22,7 +22,7 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
     useEffect(() => {
         const fetchCompanies = async () => {
             const token = localStorage.getItem("token");
-            const res = await axios.get("/api/invoices/companies", {
+            const res = await axios.get(API.GET_ALL_COMPANIES_INVOICE, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setCompanies(Array.isArray(res.data) ? res.data : []);
@@ -48,7 +48,7 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
     useEffect(() => {
         const fetchProjects = async () => {
             const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/projects/company/${selectedCompany}`, {
+            const res = await axios.get(API.GET_PROJECTS_BY_COMPANY_INVOICE(selectedCompany), {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const projectData = Array.isArray(res.data) ? res.data : [];
@@ -67,25 +67,31 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
 
     useEffect(() => {
         const fetchInvoiceDetails = async () => {
-            const token = localStorage.getItem("token");
-            const res = await axios.get(`/api/invoices/${invoice.invoice_id}/details`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            try {
+                const token = localStorage.getItem("token");
+                const res = await axios.get(API.FETCH_INVOICE_DETAILS_BY_ID(invoice.invoice_id), {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
 
-            const grouped = {};
-            const details = Array.isArray(res.data) ? res.data : [];
-            details.forEach(item => {
-                const key = item.project_name || "Project";
-                if (!grouped[key]) grouped[key] = [];
-                grouped[key].push(item);
-            });
+                const grouped = {};
+                const details = Array.isArray(res.data) ? res.data : [];
+                details.forEach(item => {
+                    const key = item.project_name || "Project";
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                });
 
-
-            setGroupedData(grouped);
+                setGroupedData(grouped);
+            } catch (err) {
+                console.error("❌ Failed to fetch invoice details:", err);
+            }
         };
 
-        if (invoice.invoice_id) fetchInvoiceDetails();
-    }, [invoice.invoice_id]);
+        if (invoice?.invoice_id) {
+            fetchInvoiceDetails();
+        }
+    }, [invoice?.invoice_id]);
+
 
     const handleCompanyChange = (value) => {
         setSelectedCompany(value);
@@ -98,7 +104,7 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
         if (!sowIds.length) return;
 
         const token = localStorage.getItem("token");
-        const res = await axios.get("/api/invoices/timesheet/invoice-data", {
+        const res = await axios.get(API.GET_INVOICE_TIMESHEET_DATA, {
             headers: { Authorization: `Bearer ${token}` },
             params: {
                 companyId: selectedCompany,
@@ -195,7 +201,7 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
 
         try {
             const token = localStorage.getItem("token");
-            await axios.put(`/api/invoices/${invoice.invoice_id}`, payload, {
+            await axios.put(API.UPDATE_INVOICE(invoice.invoice_id), payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
