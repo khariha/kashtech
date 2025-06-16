@@ -3,6 +3,7 @@ import axios from "axios";
 import DatePicker from "react-datepicker";
 import Select from "react-select";
 import "react-datepicker/dist/react-datepicker.css";
+import API from "../api/config";
 
 const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
