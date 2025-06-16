@@ -75,7 +75,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
         const projectIds = selectedProjects.map((p) => p.value);
 
         try {
-            const res = await axios.get("/api/invoices/timesheet/invoice-data", {
+            const res = await axios.get(API.GET_INVOICE_TIMESHEET_DATA, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: {
                     companyId: selectedCompany,
@@ -182,7 +182,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.post("/api/invoices", payload, {
+            const res = await axios.post(API.CREATE_INVOICE, payload, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 

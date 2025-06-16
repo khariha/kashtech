@@ -95,7 +95,7 @@ GET_EMPLOYEES_BY_PROJECT: (sowId) => `${BASE_URL}/invoices/employees/by-project/
 GET_ROLES_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/roles`,
 GET_EMPLOYEES_BY_PROJECT_AND_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/roles/${roleId}/employees`,
 GET_ALL_COMPANIES_INVOICE: `${BASE_URL}/invoices/companies`,
-
+GET_INVOICE_TIMESHEET_DATA: `${BASE_URL}/invoices/timesheet/invoice-data`,
 };
 
 export default API;
