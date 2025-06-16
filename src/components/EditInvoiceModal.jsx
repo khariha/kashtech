@@ -24,7 +24,7 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
             const res = await axios.get("/api/invoices/companies", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setCompanies(res.data);
+            setCompanies(Array.isArray(res.data) ? res.data : []);
         };
         fetchCompanies();
     }, []);
@@ -32,12 +32,15 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
     useEffect(() => {
         console.log("Invoice in EditInvoiceModal:", invoice);
         if (invoice) {
-            setStartDate(new Date(invoice.invoice_period_start));
-            setEndDate(new Date(invoice.invoice_period_end));
-            setDueDate(new Date(invoice.due_date));
-            setTaxRate(invoice.tax_rate || ""); // ← value should appear here
+            const parseDate = (dateStr) => dateStr ? new Date(dateStr) : null;
+
+            setStartDate(parseDate(invoice.invoice_period_start));
+            setEndDate(parseDate(invoice.invoice_period_end));
+            setDueDate(parseDate(invoice.due_date));
+            setTaxRate(invoice.tax_rate || "");
             setSelectedCompany(invoice.company_id);
         }
+
     }, [invoice]);
 
 
@@ -47,13 +50,15 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
             const res = await axios.get(`/api/projects/company/${selectedCompany}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setProjects(res.data);
+            const projectData = Array.isArray(res.data) ? res.data : [];
+            setProjects(projectData);
 
-            const invoiceProjects = invoice.project_name.split(",").map(p => p.trim());
-            const selected = res.data
+            const invoiceProjects = invoice.project_name?.split(",").map(p => p.trim()) || [];
+            const selected = projectData
                 .filter(p => invoiceProjects.includes(p.project_name))
                 .map(p => ({ label: p.project_name, value: p.sow_id }));
             setSelectedProjects(selected);
+
         };
 
         if (selectedCompany) fetchProjects();
@@ -67,11 +72,14 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
             });
 
             const grouped = {};
-            res.data.forEach(item => {
+            const details = Array.isArray(res.data) ? res.data : [];
+            details.forEach(item => {
                 const key = item.project_name || "Project";
                 if (!grouped[key]) grouped[key] = [];
                 grouped[key].push(item);
             });
+
+
             setGroupedData(grouped);
         };
 
@@ -100,11 +108,13 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
         });
 
         const grouped = {};
-        res.data.forEach(item => {
+        const items = Array.isArray(res.data) ? res.data : [];
+        items.forEach(item => {
             const key = item.project_name || "Project";
             if (!grouped[key]) grouped[key] = [];
             grouped[key].push(item);
         });
+
         setGroupedData(grouped);
     };
 
