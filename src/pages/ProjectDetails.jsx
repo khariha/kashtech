@@ -12,7 +12,7 @@ const ProjectDetails = () => {
         const fetchRoleBreakdown = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`/api/projects/${sowId}/role-breakdown`, {
+                const res = await axios.get(API.GET_ROLE_BREAKDOWN_BY_PROJECT(sowId), {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setRoleBreakdown(res.data);

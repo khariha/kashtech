@@ -48,6 +48,7 @@ const API = {
   GET_PROJECT_ASSIGNMENTS: (sowId) => `${BASE_URL}/projects/${sowId}/assignments`,
   DELETE_PROJECT_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/role/${roleId}`,
   DELETE_ROLE_EMPLOYEE: (sowId, roleId, empId) => `${BASE_URL}/projects/${sowId}/role/${roleId}/employee/${empId}`,
+  GET_ROLE_BREAKDOWN_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/role-breakdown`,
 
 
   // 🔄 Project Subcategories & Tasks
@@ -97,6 +98,7 @@ const API = {
   GET_ALL_COMPANIES_INVOICE: `${BASE_URL}/invoices/companies`,
   GET_INVOICE_TIMESHEET_DATA: `${BASE_URL}/invoices/timesheet/invoice-data`,
   FETCH_INVOICE_DETAILS_BY_ID: (id) => `${BASE_URL}/invoices/${id}/details`, // ✅ NEW: For invoice line items
+
 
 };
 export default API;
