@@ -24,29 +24,46 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                 const res = await axios.get("/api/invoices/companies", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setCompanies(Array.isArray(res.data) ? res.data : []);
 
+                if (Array.isArray(res.data)) {
+                    console.log("✅ Companies loaded:", res.data);
+                    setCompanies(res.data);
+                } else {
+                    console.warn("⚠️ Unexpected companies response:", res.data);
+                    setCompanies([]);
+                }
             } catch (err) {
-                console.error("Error loading companies", err);
+                console.error("❌ Error loading companies", err);
             }
         };
         fetchCompanies();
     }, []);
 
-    const handleCompanyChange = async (companyId) => {
+    const handleCompanyChange = async (companyIdRaw) => {
+        const companyId = Number(companyIdRaw); // Ensure it's a number
         setSelectedCompany(companyId);
         setSelectedProjects([]);
         setGroupedData({});
+
         try {
             const token = localStorage.getItem("token");
             const res = await axios.get(`/api/projects/company/${companyId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setProjects(Array.isArray(res.data) ? res.data : []);
+
+            if (Array.isArray(res.data)) {
+                console.log("✅ Projects for company:", res.data);
+                setProjects(res.data);
+            } else {
+                console.warn("⚠️ Unexpected projects response:", res.data);
+                setProjects([]);
+            }
         } catch (err) {
-            console.error("Failed to fetch projects", err);
+            console.error("❌ Failed to fetch projects", err);
         }
     };
+
+
 
     const applyFilters = async () => {
         if (!selectedCompany || !startDate || !endDate || selectedProjects.length === 0) {
@@ -212,7 +229,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
                     <label className="block text-sm font-semibold mb-1">Company</label>
-                    <select className="w-full border rounded px-3 py-2" value={selectedCompany} onChange={(e) => handleCompanyChange(e.target.value)}>
+                    <select className="w-full border rounded px-3 py-2" value={selectedCompany} onChange={(e) => handleCompanyChange(Number(e.target.value))}>
                         <option value="">Select Company</option>
                         {(Array.isArray(companies) ? companies : []).map((c) => (
                             <option key={c.company_id} value={c.company_id}>{c.company_name}</option>
