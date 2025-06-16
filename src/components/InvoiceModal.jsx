@@ -124,17 +124,20 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             return;
         }
 
-        const details = Object.entries(groupedData || {}).flatMap(([projectKey, rows]) =>
-            Array.isArray(rows) ? rows.map(row => ({
-                emp_id: row.emp_id,
-                sow_id: row.sow_id,
-                rate: parseFloat(row.rate || 0),
-                total_hrs: parseFloat(row.hours || 0),
-                amount: parseFloat(calculateAmount(row.hours, row.rate)),
-                resource_role: row.role,
-                sub_assignment_title: row.work_area,
-                sub_assignment_segment1: row.task_area
-            })) : []
+        const safeGroupedData = groupedData && typeof groupedData === 'object' ? groupedData : {};
+        const details = Object.entries(safeGroupedData).flatMap(([projectKey, rows]) =>
+            Array.isArray(rows)
+                ? rows.map(row => ({
+                    emp_id: row.emp_id,
+                    sow_id: row.sow_id,
+                    rate: parseFloat(row.rate || 0),
+                    total_hrs: parseFloat(row.hours || 0),
+                    amount: parseFloat(calculateAmount(row.hours, row.rate)),
+                    resource_role: row.role,
+                    sub_assignment_title: row.work_area,
+                    sub_assignment_segment1: row.task_area
+                }))
+                : []
         );
 
         if (details.length === 0) {
@@ -158,6 +161,8 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
         console.log("🟢 Sending payload:", payload);
 
+        setSaving(true);
+
         try {
             const token = localStorage.getItem("token");
             const res = await axios.post("/api/invoices", payload, {
@@ -180,6 +185,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             setTaxRate(0);
             setGroupedData({});
             setExpandedUser({});
+            setSaving(false);
 
             // Callback triggers
             onInvoiceSaved?.();
@@ -188,8 +194,10 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
         } catch (err) {
             console.error("❌ Failed to save invoice:", err);
             alert("Failed to save invoice: " + (err.response?.data?.error || err.message));
+            setSaving(false);
         }
     };
+
 
 
 
