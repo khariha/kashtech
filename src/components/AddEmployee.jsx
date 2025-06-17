@@ -37,12 +37,9 @@ const AddEmployee = ({ onClose, onAdd }) => {
 
     const validateForm = () => {
         const requiredFields = [
-            "first_name", "last_name", "emp_id", "kash_operations_usn",
-            "admin_level", "employee_status", "employee_type",
-            "email_address", "phone_number", "employee_address",
-            "emp_location_city", "emp_location_state",
-            "emp_location_country", "employee_zip_code"
-        ];
+            "first_name", "last_name", "emp_id",
+            "kash_operations_usn", "admin_level", "email_address"
+          ];
 
         for (let field of requiredFields) {
             if (!formData[field] || formData[field].toString().trim() === "") {
@@ -115,19 +112,19 @@ const AddEmployee = ({ onClose, onAdd }) => {
                             label: "*Admin Level", name: "admin_level", type: "select", options: adminLevels
                         },
                         {
-                            label: "*Status", name: "employee_status", type: "select", options: statusOptions
+                            label: "Status", name: "employee_status", type: "select", options: statusOptions
                         },
                         {
-                            label: "*Contract Type", name: "employee_type", type: "select", options: contractTypes
+                            label: "Contract Type", name: "employee_type", type: "select", options: contractTypes
                         },
                         { label: "*Email", name: "email_address" },
-                        { label: "*Phone", name: "phone_number" },
-                        { label: "*Address Line 1", name: "employee_address", colSpan: 2 },
+                        { label: "Phone", name: "phone_number" },
+                        { label: "Address Line 1", name: "employee_address", colSpan: 2 },
                         { label: "Address Line 2", name: "employee_address_line2", colSpan: 2 },
-                        { label: "*City", name: "emp_location_city" },
-                        { label: "*State", name: "emp_location_state" },
-                        { label: "*Country", name: "emp_location_country" },
-                        { label: "*Zipcode", name: "employee_zip_code" },
+                        { label: "City", name: "emp_location_city" },
+                        { label: "State", name: "emp_location_state" },
+                        { label: "Country", name: "emp_location_country" },
+                        { label: "Zipcode", name: "employee_zip_code" },
                     ].map(({ label, name, type, options, colSpan }) => (
                         <div key={name} className={colSpan ? `col-span-${colSpan}` : ""}>
                             <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">
