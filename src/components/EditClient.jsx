@@ -63,13 +63,8 @@ const EditClient = ({ client, onClose, onUpdate }) => {
 
     if (
       !company_name ||
-      !company_id ||
-      !industry ||
-      !company_address ||
-      !company_location_city ||
-      !company_location_state ||
-      !company_location_country ||
-      !company_zip_code
+      !industry
+
     ) {
       setErrorMessage("Please fill out all required fields.");
       return;
@@ -173,7 +168,7 @@ const EditClient = ({ client, onClose, onUpdate }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Address Line 1</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Address Line 1</label>
             <input name="company_address" value={formData.company_address} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white" />
           </div>
 
@@ -183,22 +178,22 @@ const EditClient = ({ client, onClose, onUpdate }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*City</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">City</label>
             <input name="company_location_city" value={formData.company_location_city} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white" />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*State</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">State</label>
             <input name="company_location_state" value={formData.company_location_state} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white" />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Country</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Country</label>
             <input name="company_location_country" value={formData.company_location_country} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white" />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Zipcode</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Zipcode</label>
             <input name="company_zip_code" value={formData.company_zip_code} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white" />
           </div>
         </div>
