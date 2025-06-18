@@ -43,12 +43,8 @@ const AddClient = ({ onClose, onAdd }) => {
 
     if (
       !company_name ||
-      !project_category ||
-      !company_address ||
-      !company_location_city ||
-      !company_location_state ||
-      !company_location_country ||
-      !company_zip_code
+      !project_category
+
     ) {
       setErrorMessage("Please fill out all required fields.");
       return;
@@ -132,7 +128,7 @@ const AddClient = ({ onClose, onAdd }) => {
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Address Line 1</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Address Line 1</label>
             <input
               name="company_address"
               value={formData.company_address}
@@ -152,7 +148,7 @@ const AddClient = ({ onClose, onAdd }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*City</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">City</label>
             <input
               name="company_location_city"
               value={formData.company_location_city}
@@ -162,7 +158,7 @@ const AddClient = ({ onClose, onAdd }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*State</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">State</label>
             <input
               name="company_location_state"
               value={formData.company_location_state}
@@ -172,7 +168,7 @@ const AddClient = ({ onClose, onAdd }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Country</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Country</label>
             <input
               name="company_location_country"
               value={formData.company_location_country}
@@ -182,7 +178,7 @@ const AddClient = ({ onClose, onAdd }) => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Zipcode</label>
+            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Zipcode</label>
             <input
               name="company_zip_code"
               value={formData.company_zip_code}
