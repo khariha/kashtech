@@ -23,6 +23,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     const [roleAssignments, setRoleAssignments] = useState([]);
     const [editingRoleIndex, setEditingRoleIndex] = useState(null);
     const token = localStorage.getItem("token");
+    const [showNewRoleField, setShowNewRoleField] = useState(false);
+    const [newRoleName, setNewRoleName] = useState("");
 
     useEffect(() => {
         if (companyId) {
@@ -156,20 +158,39 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setEditingRoleIndex(null); // Make sure to reset this too
     };
 
-    const handleAddRole = () => {
-        const roleId = parseInt(selectedRoleId);
+    const handleAddRole = async () => {
+        let roleId = selectedRoleId;
         const estimatedHours = parseInt(estimatedRoleHours);
+
+        if (showNewRoleField) {
+            if (!newRoleName.trim()) {
+                alert("Please enter a new role name.");
+                return;
+            }
+
+            try {
+                const newRoleRes = await axios.post(API.CREATE_ROLE, {
+                    role_name: newRoleName.trim(),
+                }, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const newRole = newRoleRes.data;
+                roleId = newRole.role_id;
+                setRolesFromDB([...rolesFromDB, newRole]); // Add to dropdown
+            } catch (err) {
+                console.error("Failed to create role", err);
+                alert("Failed to create new role.");
+                return;
+            }
+        }
 
         if (!roleId || !estimatedHours || selectedRoleEmployees.length === 0) {
             alert("Please select a role, set estimated hours, and assign at least one employee.");
             return;
         }
 
-        const role = rolesFromDB.find((r) => r.role_id === roleId);
-        if (!role) {
-            alert("Selected role is invalid.");
-            return;
-        }
+        const role = rolesFromDB.find((r) => r.role_id === roleId) || { role_name: newRoleName.trim(), role_id: roleId };
 
         const updatedRole = {
             role_id: roleId,
@@ -193,11 +214,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         });
 
+        // Reset fields
         setSelectedRoleId(null);
         setEstimatedRoleHours("");
         setSelectedRoleEmployees([]);
+        setNewRoleName("");
+        setShowNewRoleField(false);
         setEditingRoleIndex(null);
     };
+
 
 
     const handleSave = async () => {
@@ -407,14 +432,36 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                             <div className="flex gap-2 mb-2">
                                 <select
                                     value={selectedRoleId ?? ""}
-                                    onChange={(e) => setSelectedRoleId(parseInt(e.target.value))}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "new") {
+                                            setShowNewRoleField(true);
+                                            setSelectedRoleId(null);
+                                        } else {
+                                            setShowNewRoleField(false);
+                                            setSelectedRoleId(parseInt(val));
+                                        }
+                                    }}
                                     className="w-1/2 border rounded px-3 py-2"
                                 >
                                     <option value="">Select Role</option>
                                     {rolesFromDB.map(role => (
-                                        <option key={role.role_id} value={role.role_id}>{role.role_name}</option>
+                                        <option key={role.role_id} value={role.role_id}>
+                                            {role.role_name}
+                                        </option>
                                     ))}
+                                    <option value="new">+ Add New Role</option>
                                 </select>
+
+                                {showNewRoleField && (
+                                    <input
+                                        type="text"
+                                        placeholder="Enter new role name"
+                                        value={newRoleName}
+                                        onChange={(e) => setNewRoleName(e.target.value)}
+                                        className="w-full mt-2 border rounded px-3 py-2"
+                                    />
+                                )}
 
                                 <input
                                     type="number"

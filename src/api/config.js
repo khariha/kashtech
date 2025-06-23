@@ -51,6 +51,7 @@ const API = {
   GET_ROLE_BREAKDOWN_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/role-breakdown`,
   GET_INDUSTRIES: `${BASE_URL}/manageclients/industries`,
   CREATE_INDUSTRY: `${BASE_URL}/manageclients/industries`,
+  CREATE_ROLE: `${BASE_URL}/projects/roles`, // POST
 
   // 🔄 Project Subcategories & Tasks
   GET_AREAS_BY_PROJECT: (projectId) => `${BASE_URL}/timesheet/areas/${projectId}`,
