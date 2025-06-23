@@ -464,29 +464,19 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                 </div>
 
                                 {showNewRoleField && (
-                                    <input
-                                        type="text"
-                                        placeholder="Enter new role name"
-                                        value={newRoleName}
-                                        onChange={(e) => setNewRoleName(e.target.value)}
-                                        className="w-full border rounded px-3 py-2"
-                                    />
+                                    <div className="mb-2">
+                                        <label className="block text-sm mb-1">New Role Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter new role name"
+                                            value={newRoleName}
+                                            onChange={(e) => setNewRoleName(e.target.value)}
+                                            className="w-full border rounded px-3 py-2"
+                                        />
+                                    </div>
                                 )}
                             </div>
 
-
-                            {showNewRoleField && (
-                                <div className="mb-2">
-                                    <label className="block text-sm mb-1">New Role Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter new role name"
-                                        value={newRoleName}
-                                        onChange={(e) => setNewRoleName(e.target.value)}
-                                        className="w-full border rounded px-3 py-2"
-                                    />
-                                </div>
-                            )}
 
                             <label className="block text-sm mb-1">Select Employees</label>
                             <Select
