@@ -20,6 +20,25 @@ const EditClient = ({ client, onClose, onUpdate }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [industries, setIndustries] = useState([]);
+  const [newIndustry, setNewIndustry] = useState("");
+  const [showNewIndustryField, setShowNewIndustryField] = useState(false);
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(API.GET_INDUSTRIES, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setIndustries(res.data);
+      } catch (err) {
+        console.error("Failed to load industries", err);
+      }
+    };
+
+    fetchIndustries();
+  }, []);
+
 
   useEffect(() => {
     if (client) {
@@ -61,22 +80,33 @@ const EditClient = ({ client, onClose, onUpdate }) => {
       address_line2,
     } = formData;
 
-    if (
-      !company_name ||
-      !industry
-
-    ) {
+    if (!company_name || !industry) {
       setErrorMessage("Please fill out all required fields.");
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
+      let finalIndustry = industry;
+
+      if (industry === "new") {
+        if (!newIndustry.trim()) {
+          setErrorMessage("Please enter a name for the new industry.");
+          return;
+        }
+
+        const industryRes = await axios.post(
+          API.CREATE_INDUSTRY,
+          { name: newIndustry.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        finalIndustry = industryRes.data.name;
+      }
 
       const res = await axios.put(API.GET_CLIENT_BY_ID(company_id),
         {
           company_name,
-          industry,
+          industry: finalIndustry,
           address_line1: company_address,
           address_line2,
           city: company_location_city,
@@ -101,6 +131,7 @@ const EditClient = ({ client, onClose, onUpdate }) => {
       setErrorMessage("Update failed. Please check the data and try again.");
     }
   };
+
 
   const handleDelete = async () => {
     const confirmDelete = window.confirm("Are you sure you want to delete this client?");
@@ -153,14 +184,40 @@ const EditClient = ({ client, onClose, onUpdate }) => {
 
           <div>
             <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Industry</label>
-            <select name="industry" value={formData.industry} onChange={handleChange} className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white">
+            <select
+              name="industry"
+              value={formData.industry}
+              onChange={(e) => {
+                setFormData({ ...formData, industry: e.target.value });
+                if (e.target.value === "new") {
+                  setShowNewIndustryField(true);
+                  setNewIndustry("");
+                } else {
+                  setShowNewIndustryField(false);
+                }
+              }}
+              className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white"
+            >
               <option value="">Select Industry</option>
-              <option value="Insurance">Insurance</option>
-              <option value="Education">Education</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Technology">Technology</option>
+              {industries.map((ind) => (
+                <option key={ind.id} value={ind.name}>
+                  {ind.name}
+                </option>
+              ))}
+              <option value="new">+ Add New Industry</option>
             </select>
           </div>
+          {showNewIndustryField && (
+            <div>
+              <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">New Industry Name</label>
+              <input
+                value={newIndustry}
+                onChange={(e) => setNewIndustry(e.target.value)}
+                className="w-full px-3 py-2 rounded border text-sm border-gray-300 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          )}
+
 
           <div>
             <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">*Company ID</label>
