@@ -49,7 +49,8 @@ const API = {
   DELETE_PROJECT_ROLE: (sowId, roleId) => `${BASE_URL}/projects/${sowId}/role/${roleId}`,
   DELETE_ROLE_EMPLOYEE: (sowId, roleId, empId) => `${BASE_URL}/projects/${sowId}/role/${roleId}/employee/${empId}`,
   GET_ROLE_BREAKDOWN_BY_PROJECT: (sowId) => `${BASE_URL}/projects/${sowId}/role-breakdown`,
-
+  GET_INDUSTRIES: `${BASE_URL}/manageclients/industries`,
+  CREATE_INDUSTRY: `${BASE_URL}/manageclients/industries`,
 
   // 🔄 Project Subcategories & Tasks
   GET_AREAS_BY_PROJECT: (projectId) => `${BASE_URL}/timesheet/areas/${projectId}`,
