@@ -475,6 +475,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         />
                                     </div>
                                 )}
+
+
                             </div>
 
 
