@@ -429,29 +429,39 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                         <div className="mb-4">
                             <label className="block text-sm font-semibold mb-1">Assign Roles</label>
-                            <div className="flex gap-2 mb-2">
-                                <select
-                                    value={selectedRoleId ?? ""}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === "new") {
-                                            setShowNewRoleField(true);
-                                            setSelectedRoleId(null);
-                                        } else {
-                                            setShowNewRoleField(false);
-                                            setSelectedRoleId(parseInt(val));
-                                        }
-                                    }}
-                                    className="w-1/2 border rounded px-3 py-2"
-                                >
-                                    <option value="">Select Role</option>
-                                    {rolesFromDB.map(role => (
-                                        <option key={role.role_id} value={role.role_id}>
-                                            {role.role_name}
-                                        </option>
-                                    ))}
-                                    <option value="new">+ Add New Role</option>
-                                </select>
+                            <div className="flex flex-col gap-2 mb-2">
+                                <div className="flex gap-2">
+                                    <select
+                                        value={selectedRoleId ?? ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === "new") {
+                                                setShowNewRoleField(true);
+                                                setSelectedRoleId(null);
+                                            } else {
+                                                setShowNewRoleField(false);
+                                                setSelectedRoleId(parseInt(val));
+                                            }
+                                        }}
+                                        className="w-1/2 border rounded px-3 py-2"
+                                    >
+                                        <option value="">Select Role</option>
+                                        {rolesFromDB.map(role => (
+                                            <option key={role.role_id} value={role.role_id}>
+                                                {role.role_name}
+                                            </option>
+                                        ))}
+                                        <option value="new">+ Add New Role</option>
+                                    </select>
+
+                                    <input
+                                        type="number"
+                                        placeholder="Estimated Hours"
+                                        value={estimatedRoleHours}
+                                        onChange={(e) => setEstimatedRoleHours(e.target.value)}
+                                        className="w-1/3 border rounded px-3 py-2"
+                                    />
+                                </div>
 
                                 {showNewRoleField && (
                                     <input
@@ -459,18 +469,24 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         placeholder="Enter new role name"
                                         value={newRoleName}
                                         onChange={(e) => setNewRoleName(e.target.value)}
-                                        className="w-full mt-2 border rounded px-3 py-2"
+                                        className="w-full border rounded px-3 py-2"
                                     />
                                 )}
-
-                                <input
-                                    type="number"
-                                    placeholder="Estimated Hours"
-                                    value={estimatedRoleHours}
-                                    onChange={(e) => setEstimatedRoleHours(e.target.value)}
-                                    className="w-1/3 border rounded px-3 py-2"
-                                />
                             </div>
+
+
+                            {showNewRoleField && (
+                                <div className="mb-2">
+                                    <label className="block text-sm mb-1">New Role Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter new role name"
+                                        value={newRoleName}
+                                        onChange={(e) => setNewRoleName(e.target.value)}
+                                        className="w-full border rounded px-3 py-2"
+                                    />
+                                </div>
+                            )}
 
                             <label className="block text-sm mb-1">Select Employees</label>
                             <Select
