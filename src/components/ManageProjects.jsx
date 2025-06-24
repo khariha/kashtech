@@ -232,7 +232,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-        const requiredFields = ["project_name", "sow_id", "original_start_date", "original_end_date"];
+        const requiredFields = ["project_name", "original_start_date", "original_end_date"];
         for (const field of requiredFields) {
             if (!formData[field]) {
                 alert(`Please fill in ${field.replaceAll("_", " ")}`);
