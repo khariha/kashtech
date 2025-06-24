@@ -278,9 +278,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
             } else {
-                await axios.post(API.GET_ALL_PROJECTS, payload, {
+                const res = await axios.post(API.GET_ALL_PROJECTS, payload, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                const createdProject = res.data;
+                setFormData(prev => ({ ...prev, sow_id: createdProject.sow_id }));
+
             }
 
             // ✅ Use correct API to fetch existing assignments (with role_id)
@@ -399,7 +402,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         <div className="grid grid-cols-2 gap-4 mb-2">
                             <div>
                                 <label className="block text-sm mb-1">*SOW ID</label>
-                                <input value={formData.sow_id} disabled={!!editingProject} onChange={(e) => setFormData({ ...formData, sow_id: e.target.value })} className="w-full border rounded px-3 py-2" />
+                                <input
+                                    value={formData.sow_id}
+                                    disabled
+                                    className="w-full border rounded px-3 py-2"
+                                    placeholder="Will be generated automatically"
+                                />
+
                             </div>
                             <div>
                                 <label className="block text-sm mb-1">Project Status</label>
