@@ -130,15 +130,28 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
     const handleDelete = async (sow_id) => {
         if (!window.confirm("Are you sure you want to delete this project?")) return;
+
         try {
             await axios.delete(API.GET_PROJECT_BY_SOW_ID(sow_id), {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            fetchProjects();
+
+            console.log(`🗑️ Deleted project with SOW ID: ${sow_id}`);
+
+            // ✅ Refresh the project list
+            await fetchProjects();
+
+            // ✅ Optionally reset form if the deleted project was being edited
+            if (editingProject?.sow_id === sow_id) {
+                resetForm();
+            }
+
         } catch (err) {
-            console.error("Delete failed", err);
+            console.error("❌ Delete failed:", err);
+            alert("Failed to delete project. See console for details.");
         }
     };
+
 
     const resetForm = () => {
         setFormData({
