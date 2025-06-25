@@ -171,6 +171,26 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setEditingRoleIndex(null); // Make sure to reset this too
     };
 
+    const renderEmployeeRateInputs = (role, index, employees, onRateChange) => {
+        return role.employees.map((empId) => {
+            const emp = employees.find(e => e.emp_id === empId);
+            const currentRate = role.rates?.[empId] || "";
+
+            return (
+                <div key={empId} className="flex items-center gap-2 mb-2">
+                    <div className="w-1/2">{emp?.first_name} {emp?.last_name}</div>
+                    <input
+                        type="number"
+                        className="w-1/2 border rounded px-2 py-1"
+                        placeholder="Hourly Rate"
+                        value={currentRate}
+                        onChange={(e) => onRateChange(index, empId, e.target.value)}
+                    />
+                </div>
+            );
+        });
+    };
+
     const handleAddRole = async () => {
         let roleId = selectedRoleId;
         const estimatedHours = parseInt(estimatedRoleHours);
@@ -203,14 +223,29 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-
         const role = rolesFromDB.find((r) => r.role_id === roleId) || { role_name: newRoleName.trim(), role_id: roleId };
+
+        // Build employee + rate mapping
+        const employeeIds = selectedRoleEmployees.map((e) => e.value);
+        const rates = {};
+        employeeIds.forEach(empId => {
+            const inputId = `rate-${roleId}-${empId}`;
+            const rateVal = document.getElementById(inputId)?.value;
+            const parsedRate = parseFloat(rateVal);
+            if (!isNaN(parsedRate)) {
+                rates[empId] = parsedRate;
+            } else {
+                alert(`Please enter a valid rate for employee ID ${empId}`);
+                return;
+            }
+        });
 
         const updatedRole = {
             role_id: roleId,
             role_name: role.role_name,
             estimated_hours: estimatedHours,
-            employees: selectedRoleEmployees.map((e) => e.value),
+            employees: employeeIds,
+            rates: rates, // ⬅️ NEW: storing individual rates
         };
 
         setRoleAssignments((prev) => {
@@ -236,7 +271,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setShowNewRoleField(false);
         setEditingRoleIndex(null);
     };
-
 
 
     const handleSave = async () => {
@@ -355,20 +389,18 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                     await Promise.all(
                         toAssign.map(emp_id => {
-                            console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`, {
-                                sow_id: sowIdToUse,
-                                emp_id,
-                                role_id: role.role_id,
-                            });
+                            const rate = role.rates?.[emp_id] || null;
                             return axios.post(API.ASSIGN_EMPLOYEE, {
                                 sow_id: sowIdToUse,
                                 emp_id,
                                 role_id: role.role_id,
+                                rate: rate ? parseFloat(rate) : null,
                             }, {
                                 headers: { Authorization: `Bearer ${token}` },
                             });
                         })
                     );
+
                 } catch (roleError) {
                     console.error(`❌ Failed to save role or employees for role_id ${role.role_id}`, roleError);
                     alert(`Failed to save role ${role.role_name}. See console.`);
@@ -606,6 +638,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
 
                                     </div>
+
+                                    {renderEmployeeRateInputs(role, index, employees, (roleIndex, empId, rateVal) => {
+                                        setRoleAssignments((prev) => {
+                                            const updated = [...prev];
+                                            if (!updated[roleIndex].rates) updated[roleIndex].rates = {};
+                                            updated[roleIndex].rates[empId] = rateVal;
+                                            return updated;
+                                        });
+                                    })}
                                 </div>
                             ))
                         ) : (
