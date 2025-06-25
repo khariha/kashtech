@@ -273,6 +273,8 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const payload = { ...formData, company_id: companyId };
             console.log("📦 Saving project with payload:", payload);
 
+            let sowIdToUse = formData.sow_id;
+
             if (editingProject) {
                 await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -282,15 +284,16 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const createdProject = res.data;
-                console.log("✅ Project created:", createdProject);
 
-                setFormData(prev => ({ ...prev, sow_id: createdProject.sow_id }));
+                sowIdToUse = createdProject.sow_id;
+                console.log("✅ Project created with sow_id:", sowIdToUse);
+                setFormData(prev => ({ ...prev, sow_id: sowIdToUse }));
             }
 
-            console.log("📌 SOW ID for assignment:", formData.sow_id);
+            console.log("📌 Using SOW ID for assignment:", sowIdToUse);
 
             const existing = editingProject
-                ? await axios.get(API.GET_PROJECT_ASSIGNMENTS(formData.sow_id), {
+                ? await axios.get(API.GET_PROJECT_ASSIGNMENTS(sowIdToUse), {
                     headers: { Authorization: `Bearer ${token}` },
                 }).then(res => res.data)
                 : [];
@@ -306,13 +309,13 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             for (const role of assignmentsToSave) {
                 try {
                     console.log("📤 Sending role assignment payload:", {
-                        sow_id: formData.sow_id,
+                        sow_id: sowIdToUse,
                         role_id: role.role_id,
                         estimated_hours: role.estimated_hours,
                     });
 
                     await axios.post(API.ASSIGN_ROLE, {
-                        sow_id: formData.sow_id,
+                        sow_id: sowIdToUse,
                         role_id: role.role_id,
                         estimated_hours: role.estimated_hours,
                     }, {
@@ -323,7 +326,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         for (const oldEmp of groupedOld[role.role_id]) {
                             if (!role.employees.includes(oldEmp)) {
                                 console.log(`🗑️ Deleting employee ${oldEmp} from role ${role.role_id}`);
-                                await axios.delete(API.DELETE_ROLE_EMPLOYEE(formData.sow_id, role.role_id, oldEmp), {
+                                await axios.delete(API.DELETE_ROLE_EMPLOYEE(sowIdToUse, role.role_id, oldEmp), {
                                     headers: { Authorization: `Bearer ${token}` },
                                 });
                             }
@@ -339,12 +342,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     await Promise.all(
                         toAssign.map(emp_id => {
                             console.log(`📤 Assigning employee ${emp_id} to role ${role.role_id}`, {
-                                sow_id: formData.sow_id,
+                                sow_id: sowIdToUse,
                                 emp_id,
                                 role_id: role.role_id,
                             });
                             return axios.post(API.ASSIGN_EMPLOYEE, {
-                                sow_id: formData.sow_id,
+                                sow_id: sowIdToUse,
                                 emp_id,
                                 role_id: role.role_id,
                             }, {
