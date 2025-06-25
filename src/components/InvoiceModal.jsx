@@ -100,7 +100,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             if (!grouped[key]) grouped[key] = [];
             grouped[key].push({
                 ...item,
-                rate: 0,
+                rate: parseFloat(item.rate) || 0,  // ✅ Use actual rate from backend
                 sow_id: item.sow_id
             });
         });
