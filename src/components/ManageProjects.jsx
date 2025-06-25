@@ -101,12 +101,24 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const employeesList = Array.isArray(empRes.data) ? empRes.data : [];
             const rolesList = Array.isArray(roleRes.data) ? roleRes.data : [];
 
-            const assignmentData = (assignRes.data || []).map((r) => ({
-                role_id: Number(r.role_id),
-                role_name: r.role_name,
-                estimated_hours: Number(r.estimated_hours),
-                employees: Array.isArray(r.employees) ? r.employees.map((e) => Number(e)) : [],
-            }));
+            const assignmentData = (assignRes.data || []).map((r) => {
+                const rates = {};
+                if (Array.isArray(r.employees_with_rates)) {
+                    r.employees_with_rates.forEach(emp => {
+                        rates[emp.emp_id] = emp.rate;
+                    });
+                }
+
+                return {
+                    role_id: Number(r.role_id),
+                    role_name: r.role_name,
+                    estimated_hours: Number(r.estimated_hours),
+                    employees: Array.isArray(r.employees_with_rates)
+                        ? r.employees_with_rates.map((e) => Number(e.emp_id))
+                        : [],
+                    rates,
+                };
+            });
 
             setEmployees(employeesList);
             setRolesFromDB(rolesList);
