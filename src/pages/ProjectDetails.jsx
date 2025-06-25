@@ -7,6 +7,7 @@ const ProjectDetails = () => {
     const { sowId } = useParams();
     const [roleBreakdown, setRoleBreakdown] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [projectInfo, setProjectInfo] = useState(null);
 
     useEffect(() => {
         const fetchRoleBreakdown = async () => {
@@ -33,16 +34,48 @@ const ProjectDetails = () => {
         return acc;
     }, {});
 
+    useEffect(() => {
+        const fetchRoleBreakdown = async () => {
+            try {
+                const token = localStorage.getItem("token");
+
+                const [roleRes, infoRes] = await Promise.all([
+                    axios.get(API.GET_ROLE_BREAKDOWN_BY_PROJECT(sowId), {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    axios.get(API.GET_PROJECT_HEADER_INFO(sowId), {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ]);
+
+                setRoleBreakdown(roleRes.data);
+                setProjectInfo(infoRes.data);
+            } catch (err) {
+                console.error("Failed to fetch role breakdown or project info", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRoleBreakdown();
+    }, [sowId]);
+
     return (
         <div className="px-6 py-4">
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-purple-800">Role-wise Breakdown</h1>
+                    {projectInfo && (
+                        <h2 className="text-md font-medium text-gray-600 mt-1">
+                            {projectInfo.company_name} — {projectInfo.project_name}
+                        </h2>
+                    )}
                 </div>
                 <button className="border border-purple-400 px-4 py-1 rounded-full text-purple-700 font-medium text-sm">
                     Create a Report
                 </button>
             </div>
+
 
             {loading ? (
                 <p className="text-center text-gray-500">Loading...</p>

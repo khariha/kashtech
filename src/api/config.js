@@ -52,7 +52,8 @@ const API = {
   GET_INDUSTRIES: `${BASE_URL}/manageclients/industries`,
   CREATE_INDUSTRY: `${BASE_URL}/manageclients/industries`,
   CREATE_ROLE: `${BASE_URL}/projects/roles`, // POST
-
+  GET_PROJECT_HEADER_INFO: (sowId) => `/api/projects/${sowId}/info`,
+  
   // 🔄 Project Subcategories & Tasks
   GET_AREAS_BY_PROJECT: (projectId) => `${BASE_URL}/timesheet/areas/${projectId}`,
   GET_TASK_AREAS_BY_PROJECT_AND_WORKAREA: (sowId, workArea) =>
