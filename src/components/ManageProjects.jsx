@@ -276,9 +276,9 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         }
 
         if (assignmentsToSave.length === 0) {
-            alert("Please assign at least one role with employees before saving.");
+            alert("Please assign at least one role (employees optional).");
             return;
-        }
+        }        
 
         console.log("📝 Final assignments to save:", assignmentsToSave);
 
