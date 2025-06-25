@@ -198,10 +198,11 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         }
 
-        if (!roleId || !estimatedHours || selectedRoleEmployees.length === 0) {
-            alert("Please select a role, set estimated hours, and assign at least one employee.");
+        if (!roleId || !estimatedHours) {
+            alert("Please select a role and set estimated hours. Employees are optional.");
             return;
         }
+
 
         const role = rolesFromDB.find((r) => r.role_id === roleId) || { role_name: newRoleName.trim(), role_id: roleId };
 
@@ -278,7 +279,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         if (assignmentsToSave.length === 0) {
             alert("Please assign at least one role (employees optional).");
             return;
-        }        
+        }
 
         console.log("📝 Final assignments to save:", assignmentsToSave);
 
