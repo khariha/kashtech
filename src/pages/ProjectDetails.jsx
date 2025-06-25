@@ -13,31 +13,6 @@ const ProjectDetails = () => {
         const fetchRoleBreakdown = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(API.GET_ROLE_BREAKDOWN_BY_PROJECT(sowId), {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setRoleBreakdown(res.data);
-            } catch (err) {
-                console.error("Failed to fetch role breakdown", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRoleBreakdown();
-    }, [sowId]);
-
-    const groupedByRole = roleBreakdown.reduce((acc, curr) => {
-        const key = curr.role_name;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(curr);
-        return acc;
-    }, {});
-
-    useEffect(() => {
-        const fetchRoleBreakdown = async () => {
-            try {
-                const token = localStorage.getItem("token");
 
                 const [roleRes, infoRes] = await Promise.all([
                     axios.get(API.GET_ROLE_BREAKDOWN_BY_PROJECT(sowId), {
@@ -59,6 +34,16 @@ const ProjectDetails = () => {
 
         fetchRoleBreakdown();
     }, [sowId]);
+
+
+    const groupedByRole = roleBreakdown.reduce((acc, curr) => {
+        const key = curr.role_name;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(curr);
+        return acc;
+    }, {});
+
+
 
     return (
         <div className="px-6 py-4">
