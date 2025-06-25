@@ -150,10 +150,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
             console.log(`🗑️ Deleted project with SOW ID: ${sow_id}`);
 
-            // ✅ Refresh the project list
+            // 👇 Clear old projects visually first
+            setProjects([]);
+
+            // ✅ Refresh project list
             await fetchProjects();
 
-            // ✅ Optionally reset form if the deleted project was being edited
             if (editingProject?.sow_id === sow_id) {
                 resetForm();
             }
@@ -163,6 +165,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Failed to delete project. See console for details.");
         }
     };
+
 
 
     const resetForm = () => {
@@ -240,17 +243,17 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         // Build employee + rate mapping
         const employeeIds = selectedRoleEmployees.map((e) => e.value);
         const rates = {};
+
         employeeIds.forEach(empId => {
             const inputId = `rate-${roleId}-${empId}`;
             const rateVal = document.getElementById(inputId)?.value;
             const parsedRate = parseFloat(rateVal);
             if (!isNaN(parsedRate)) {
                 rates[empId] = parsedRate;
-            } else {
-                alert(`Please enter a valid rate for employee ID ${empId}`);
-                return;
             }
+            // Don't alert here — allow user to correct after
         });
+
 
         const updatedRole = {
             role_id: roleId,
@@ -402,19 +405,25 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                     const toAssign = employeeList.filter(emp_id => !existingEmpSet.has(emp_id));
 
-                    await Promise.all(
-                        toAssign.map(emp_id => {
-                            const rate = role.rates?.[emp_id] || null;
-                            return axios.post(API.ASSIGN_EMPLOYEE, {
+                    if (toAssign.length > 0) {
+                        for (const emp_id of toAssign) {
+                            const rate = role.rates?.[emp_id];
+                            if (rate === undefined || isNaN(rate)) {
+                                console.warn(`⏭️ Skipping employee ${emp_id} for role ${role.role_id} due to missing rate.`);
+                                continue;
+                            }
+
+                            await axios.post(API.ASSIGN_EMPLOYEE, {
                                 sow_id: sowIdToUse,
                                 emp_id,
                                 role_id: role.role_id,
-                                rate: rate ? parseFloat(rate) : null,
+                                rate: parseFloat(rate),
                             }, {
                                 headers: { Authorization: `Bearer ${token}` },
                             });
-                        })
-                    );
+                        }
+                    }
+
 
                 } catch (roleError) {
                     console.error(`❌ Failed to save role or employees for role_id ${role.role_id}`, roleError);
