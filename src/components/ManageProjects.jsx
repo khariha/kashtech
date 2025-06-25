@@ -361,13 +361,16 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const groupedOld = {};
             for (const entry of existing) {
                 if (!groupedOld[entry.role_id]) groupedOld[entry.role_id] = new Set();
-                for (const emp of entry.employees) {
+                const empList = Array.isArray(entry.employees) ? entry.employees : [];
+                for (const emp of empList) {
                     groupedOld[entry.role_id].add(emp);
                 }
             }
 
             for (const role of assignmentsToSave) {
                 try {
+                    const employeeList = Array.isArray(role.employees) ? role.employees : [];
+
                     console.log("📤 Sending role assignment payload:", {
                         sow_id: sowIdToUse,
                         role_id: role.role_id,
@@ -384,7 +387,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                     if (editingProject && groupedOld[role.role_id]) {
                         for (const oldEmp of groupedOld[role.role_id]) {
-                            if (!role.employees.includes(oldEmp)) {
+                            if (!employeeList.includes(oldEmp)) {
                                 console.log(`🗑️ Deleting employee ${oldEmp} from role ${role.role_id}`);
                                 await axios.delete(API.DELETE_ROLE_EMPLOYEE(sowIdToUse, role.role_id, oldEmp), {
                                     headers: { Authorization: `Bearer ${token}` },
@@ -397,7 +400,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         (existing.find(e => e.role_id === role.role_id)?.employees) || []
                     );
 
-                    const toAssign = role.employees.filter(emp_id => !existingEmpSet.has(emp_id));
+                    const toAssign = employeeList.filter(emp_id => !existingEmpSet.has(emp_id));
 
                     await Promise.all(
                         toAssign.map(emp_id => {
@@ -426,6 +429,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
