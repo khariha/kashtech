@@ -32,7 +32,7 @@ const DailyTimesheetReport = () => {
     const [selectedCompanyId, setSelectedCompanyId] = useState(null);
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 15;
+    const itemsPerPage = 50;
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();

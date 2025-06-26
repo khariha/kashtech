@@ -17,7 +17,7 @@ const TimesheetHoursReport = () => {
     const [customStartDate, setCustomStartDate] = useState(null);
     const [customEndDate, setCustomEndDate] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
-    const itemsPerPage = 15;
+    const itemsPerPage = 50;
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();

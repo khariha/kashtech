@@ -64,24 +64,29 @@ const TimesheetTable = ({
   const getRowTotal = (entry) =>
     entry.hours.reduce((sum, h) => sum + parseFloat(h || 0), 0);
 
-  const dailyTotals = useMemo(() => {
-    return weekDates.map((_, dayIdx) =>
-      entries
-        .reduce((sum, row) => sum + (parseFloat(row.hours[dayIdx]) || 0), 0)
-        .toFixed(2)
-    );
-  }, [entries, weekDates]);
+  const dailyTotals = useMemo(
+    () =>
+      weekDates.map((_, dayIdx) =>
+        entries
+          .reduce((sum, row) => sum + (parseFloat(row.hours[dayIdx]) || 0), 0)
+          .toFixed(2)
+      ),
+    [entries, weekDates]
+  );
 
-  const overallTotal = useMemo(() => {
-    return entries.reduce((sum, entry) => sum + getRowTotal(entry), 0).toFixed(2);
-  }, [entries]);
+  const overallTotal = useMemo(
+    () => entries.reduce((sum, entry) => sum + getRowTotal(entry), 0).toFixed(2),
+    [entries]
+  );
 
   return (
     entries.length > 0 &&
     weekStartDate && (
       <div className="mt-6 border rounded-md overflow-x-auto">
         {error && (
-          <div className="bg-red-100 text-red-700 p-2 text-sm border-b">{error}</div>
+          <div className="bg-red-100 text-red-700 p-2 text-sm border-b">
+            {error}
+          </div>
         )}
 
         <table className="w-full text-sm text-left">
@@ -90,15 +95,18 @@ const TimesheetTable = ({
               <th className="p-2 text-left">Timesheet Information</th>
               {weekDates.map((date, idx) => (
                 <th key={idx} className="p-2 text-center">
-                  <div className="text-sm font-medium">{format(date, "MMM d")}</div>
-                  <div className="text-xs font-light">[{format(date, "EEE")}]</div>
+                  <div className="text-sm font-medium">
+                    {format(date, "MMM d")}
+                  </div>
+                  <div className="text-xs font-light">
+                    [{format(date, "EEE")}]
+                  </div>
                 </th>
               ))}
-              <th className="p-2 text-left">Total</th>
+              <th className="p-2 text-center">Total</th>
               <th className="p-2 text-left">Action</th>
             </tr>
           </thead>
-
           <tbody>
             {entries.map((entry, idx) => (
               <TimesheetRow
@@ -113,27 +121,26 @@ const TimesheetTable = ({
               />
             ))}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-50 border-t text-sm">
+              <td className="p-2 font-bold text-purple-700">Total</td>
+              {dailyTotals.map((val, i) => (
+                <td key={i} className="p-2 text-center font-semibold">
+                  {val}
+                </td>
+              ))}
+              <td className="p-2 text-center font-bold">{overallTotal}</td>
+              <td className="p-2" />
+            </tr>
+          </tfoot>
         </table>
 
-        {/* Daily Total Row */}
-        <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-t text-sm">
-          <span className="font-bold text-purple-700">Total</span>
-          <div className="flex gap-4">
-            {dailyTotals.map((val, i) => (
-              <span key={i} className="w-16 text-left font-semibold">{val}</span>
-            ))}
-            <span className="w-16 text-left font-bold">{overallTotal}</span>
-          </div>
-        </div>
-
-        {/* Save Button */}
         <div className="flex justify-end px-4 py-4">
           <button
             onClick={handleSave}
             disabled={isSaving || !!error}
-            className={`bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-full text-sm ${
-              isSaving || error ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-full text-sm ${isSaving || error ? "opacity-50 cursor-not-allowed" : ""
+              }`}
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
