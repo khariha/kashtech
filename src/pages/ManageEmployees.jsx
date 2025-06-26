@@ -5,7 +5,7 @@ import EditEmployee from "../components/EditEmployee";
 import AddEmployee from "../components/AddEmployee"; // 🆕 new component
 import API from "../api/config";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 50;
 
 const ManageEmployees = () => {
     const [employees, setEmployees] = useState([]);

@@ -9,7 +9,7 @@ import ManageAdmins from "../components/ManageAdmins";
 import API from "../api/config";
 import { ClipLoader } from "react-spinners";
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 50;
 
 const ManageClients = () => {
     const [clients, setClients] = useState([]);

@@ -37,7 +37,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
 
     const validateForm = () => {
         const requiredFields = [
-            "first_name", "last_name", "emp_id",
+            "first_name", "last_name",
             "kash_operations_usn", "admin_level", "email_address"
         ];
 
@@ -63,7 +63,8 @@ const AddEmployee = ({ onClose, onAdd }) => {
             const result = await axios.post(API.FETCH_ALL_EMPLOYEES, formData, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setFormData(prev => ({ ...prev, emp_id: result.data.emp_id })); // set generated ID
+            setFormData(prev => ({ ...prev, emp_id: res.data.emp_id }));
+
 
 
             setSuccess("Employee added successfully!");

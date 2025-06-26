@@ -93,7 +93,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
             { label: "*First Name", name: "first_name" },
             { label: "Middle Name", name: "middle_name" },
             { label: "*Last Name", name: "last_name" },
-            { label: "*Employee ID", name: "emp_id" },
+            { label: "*Employee ID", name: "emp_id", type: "readonly" },
             { label: "*Username", name: "kash_operations_usn" },
             {
               label: "*Admin Level",

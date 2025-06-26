@@ -19,7 +19,7 @@ const ManageInvoices = () => {
     const [sortField, setSortField] = useState(null);
     const [sortOrder, setSortOrder] = useState("asc");
     const [currentPage, setCurrentPage] = useState(1);
-    const rowsPerPage = 10;
+    const rowsPerPage = 50;
     const token = localStorage.getItem("token");
 
     useEffect(() => {
