@@ -68,7 +68,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
             
 
             setSuccess("Employee added successfully!");
-            onAdd(res.data); // update parent list
+       
             setTimeout(() => {
                 setSuccess("");
                 onClose();
