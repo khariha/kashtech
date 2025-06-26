@@ -39,7 +39,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
         const requiredFields = [
             "first_name", "last_name", "emp_id",
             "kash_operations_usn", "admin_level", "email_address"
-          ];
+        ];
 
         for (let field of requiredFields) {
             if (!formData[field] || formData[field].toString().trim() === "") {
@@ -60,9 +60,11 @@ const AddEmployee = ({ onClose, onAdd }) => {
                 return;
             }
 
-            const res = await axios.post(API.FETCH_ALL_EMPLOYEES, formData, {
+            const result = await axios.post(API.FETCH_ALL_EMPLOYEES, formData, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            setFormData(prev => ({ ...prev, emp_id: result.data.emp_id })); // set generated ID
+
 
             setSuccess("Employee added successfully!");
             onAdd(res.data); // update parent list
@@ -72,16 +74,16 @@ const AddEmployee = ({ onClose, onAdd }) => {
             }, 1000);
         } catch (err) {
             const backendMsg = err?.response?.data?.error;
-          
+
             if (backendMsg?.includes("Employee ID already exists")) {
-              setError("Employee ID already exists. Please use a different one.");
+                setError("Employee ID already exists. Please use a different one.");
             } else {
-              setError(backendMsg || "Failed to add employee.");
+                setError(backendMsg || "Failed to add employee.");
             }
-          
+
             console.error("Add employee error:", backendMsg || err.message);
-          }
-          
+        }
+
     };
 
 
@@ -106,7 +108,7 @@ const AddEmployee = ({ onClose, onAdd }) => {
                         { label: "*First Name", name: "first_name" },
                         { label: "Middle Name", name: "middle_name" },
                         { label: "*Last Name", name: "last_name" },
-                        { label: "*Employee ID", name: "emp_id" },
+                        { label: "*Employee ID", name: "emp_id", type: "readonly" },
                         { label: "*Username", name: "kash_operations_usn" },
                         {
                             label: "*Admin Level", name: "admin_level", type: "select", options: adminLevels
@@ -147,8 +149,11 @@ const AddEmployee = ({ onClose, onAdd }) => {
                                     name={name}
                                     value={formData[name]}
                                     onChange={handleChange}
-                                    className="input"
+                                    placeholder={name === "emp_id" ? "Will be generated automatically!" : ""}
+                                    disabled={name === "emp_id"}
+                                    className={`input ${name === "emp_id" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                                 />
+
                             )}
                         </div>
                     ))}
