@@ -23,7 +23,7 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
       "first_name", "last_name", "emp_id",
       "kash_operations_usn", "admin_level", "email_address"
     ];
-    
+
     for (let field of requiredFields) {
       if (!String(formData[field] || "").trim()) {
         setError("Please fill out all required fields.");
@@ -149,8 +149,10 @@ const EditEmployee = ({ employee, onClose, onUpdate }) => {
                   name={name}
                   value={formData[name] || ""}
                   onChange={handleChange}
-                  className="input"
+                  disabled={name === "emp_id"}
+                  className={`input ${name === "emp_id" ? "bg-gray-100 cursor-not-allowed" : ""}`}
                 />
+
               )}
             </div>
           ))}

@@ -84,9 +84,6 @@ const ManageEmployees = () => {
                         className="pl-10 pr-3 py-2 w-full border border-gray-300 rounded-full text-sm dark:bg-[#2b2b3c] dark:text-white dark:border-gray-500"
                     />
                 </div>
-                <button className="border border-gray-300 text-sm px-4 py-2 rounded-full text-gray-700 dark:text-white dark:border-gray-500">
-                    Filters
-                </button>
             </div>
 
             {/* Employee Table */}
