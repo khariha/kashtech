@@ -64,7 +64,8 @@ const AddEmployee = ({ onClose, onAdd }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setFormData(prev => ({ ...prev, emp_id: result.data.emp_id }));
-
+            onAdd(result.data);
+            
 
             setSuccess("Employee added successfully!");
             onAdd(res.data); // update parent list
