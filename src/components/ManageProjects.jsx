@@ -295,6 +295,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
+        // make sure required project fields are filled
         const requiredFields = ["project_name", "original_start_date", "original_end_date"];
         for (const field of requiredFields) {
             if (!formData[field]) {
@@ -303,14 +304,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             }
         }
 
+        // start with any roles the user already added in this session
         let assignmentsToSave = [...roleAssignments];
         const roleId = parseInt(selectedRoleId);
         const estimatedHours = parseInt(estimatedRoleHours);
 
+        // auto-add the currently selected role (employees optional)
         const hasUnaddedRole =
             roleId &&
             !isNaN(estimatedHours) &&
-            selectedRoleEmployees.length > 0 &&
             !assignmentsToSave.some(r => r.role_id === roleId);
 
         if (hasUnaddedRole) {
@@ -320,11 +322,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                     role_id: roleId,
                     role_name: roleObj.role_name,
                     estimated_hours: estimatedHours,
-                    employees: selectedRoleEmployees.map(e => e.value),
+                    employees: selectedRoleEmployees.map(e => e.value),  // can be empty
                 });
             }
         }
 
+        // if after that there are still no roles, block the save
         if (assignmentsToSave.length === 0) {
             alert("Please assign at least one role (employees optional).");
             return;
@@ -338,48 +341,47 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
             let sowIdToUse = formData.sow_id;
 
+            // create or update the project itself
             if (editingProject) {
-                await axios.put(API.GET_PROJECT_BY_SOW_ID(formData.sow_id), payload, {
+                await axios.put(API.GET_PROJECT_BY_SOW_ID(sowIdToUse), payload, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
             } else {
                 const res = await axios.post(API.GET_ALL_PROJECTS, payload, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const createdProject = res.data;
-
-                sowIdToUse = createdProject.sow_id;
+                sowIdToUse = res.data.sow_id;
                 console.log("✅ Project created with sow_id:", sowIdToUse);
                 setFormData(prev => ({ ...prev, sow_id: sowIdToUse }));
             }
 
             console.log("📌 Using SOW ID for assignment:", sowIdToUse);
 
+            // fetch existing assignments if editing, so we can diff out deletes
             const existing = editingProject
                 ? await axios.get(API.GET_PROJECT_ASSIGNMENTS(sowIdToUse), {
                     headers: { Authorization: `Bearer ${token}` },
-                }).then(res => res.data)
+                }).then(r => r.data)
                 : [];
 
+            // group old employees by role
             const groupedOld = {};
             for (const entry of existing) {
                 if (!groupedOld[entry.role_id]) groupedOld[entry.role_id] = new Set();
-                const empList = Array.isArray(entry.employees) ? entry.employees : [];
-                for (const emp of empList) {
-                    groupedOld[entry.role_id].add(emp);
-                }
+                (entry.employees || []).forEach(emp => groupedOld[entry.role_id].add(emp));
             }
 
+            // now save each new/updated role + its employees
             for (const role of assignmentsToSave) {
                 try {
                     const employeeList = Array.isArray(role.employees) ? role.employees : [];
 
+                    // 1) assign/update role hours
                     console.log("📤 Sending role assignment payload:", {
                         sow_id: sowIdToUse,
                         role_id: role.role_id,
                         estimated_hours: role.estimated_hours,
                     });
-
                     await axios.post(API.ASSIGN_ROLE, {
                         sow_id: sowIdToUse,
                         role_id: role.role_id,
@@ -388,49 +390,45 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         headers: { Authorization: `Bearer ${token}` },
                     });
 
+                    // 2) remove any employees unselected now
                     if (editingProject && groupedOld[role.role_id]) {
                         for (const oldEmp of groupedOld[role.role_id]) {
                             if (!employeeList.includes(oldEmp)) {
                                 console.log(`🗑️ Deleting employee ${oldEmp} from role ${role.role_id}`);
-                                await axios.delete(API.DELETE_ROLE_EMPLOYEE(sowIdToUse, role.role_id, oldEmp), {
-                                    headers: { Authorization: `Bearer ${token}` },
-                                });
+                                await axios.delete(
+                                    API.DELETE_ROLE_EMPLOYEE(sowIdToUse, role.role_id, oldEmp),
+                                    { headers: { Authorization: `Bearer ${token}` } }
+                                );
                             }
                         }
                     }
 
+                    // 3) add any newly selected employees (with rate)
                     const existingEmpSet = new Set(
                         (existing.find(e => e.role_id === role.role_id)?.employees) || []
                     );
-
-                    const toAssign = employeeList.filter(emp_id => !existingEmpSet.has(emp_id));
-
-                    if (toAssign.length > 0) {
-                        for (const emp_id of toAssign) {
-                            const rate = role.rates?.[emp_id];
-                            if (rate === undefined || isNaN(rate)) {
-                                console.warn(`⏭️ Skipping employee ${emp_id} for role ${role.role_id} due to missing rate.`);
-                                continue;
-                            }
-
-                            await axios.post(API.ASSIGN_EMPLOYEE, {
-                                sow_id: sowIdToUse,
-                                emp_id,
-                                role_id: role.role_id,
-                                rate: parseFloat(rate),
-                            }, {
-                                headers: { Authorization: `Bearer ${token}` },
-                            });
+                    for (const emp_id of employeeList.filter(id => !existingEmpSet.has(id))) {
+                        const rate = role.rates?.[emp_id];
+                        if (rate == null || isNaN(rate)) {
+                            console.warn(`⏭️ Skipping employee ${emp_id} due to missing rate.`);
+                            continue;
                         }
+                        await axios.post(API.ASSIGN_EMPLOYEE, {
+                            sow_id: sowIdToUse,
+                            emp_id,
+                            role_id: role.role_id,
+                            rate: parseFloat(rate),
+                        }, {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
                     }
-
-
                 } catch (roleError) {
-                    console.error(`❌ Failed to save role or employees for role_id ${role.role_id}`, roleError);
+                    console.error(`❌ Failed to save role ${role.role_id}:`, roleError);
                     alert(`Failed to save role ${role.role_name}. See console.`);
                 }
             }
 
+            // finally refresh and close
             await fetchProjects();
             resetForm();
         } catch (err) {
@@ -438,6 +436,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
