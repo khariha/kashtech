@@ -56,9 +56,7 @@ const ProjectDetails = () => {
                         </h2>
                     )}
                 </div>
-                <button className="border border-purple-400 px-4 py-1 rounded-full text-purple-700 font-medium text-sm">
-                    Create a Report
-                </button>
+
             </div>
 
 

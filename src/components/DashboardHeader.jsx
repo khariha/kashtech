@@ -23,26 +23,10 @@ const DashboardHeader = ({ userName }) => {
                 </h1>
 
                 {/* 📅 Dropdown */}
-                <select className="mt-3 px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-[#1e1e2f] dark:text-white dark:border-gray-600">
-                    <option>Month to Date</option>
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                </select>
             </div>
 
             {/* 📄 Create Report */}
-            <button
-                style={{
-                    border: '1px solid #a855f7', // Fallback border color (Tailwind's purple-400)
-                    padding: '6px 20px',
-                    borderRadius: '9999px',
-                    color: '#6b21a8',
-                    fontWeight: '500',
-                    fontSize: '0.875rem',
-                }}
-            >
-                Create a Report
-            </button>
+
         </div>
     );
 };
