@@ -423,21 +423,20 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         }
                     }
 
-                    // 3) add any newly selected employees (with rate)
+                    // 3) add all newly selected employees (rate may be blank)
                     const existingEmpSet = new Set(
                         (existing.find(e => e.role_id === role.role_id)?.employees) || []
                     );
                     for (const emp_id of employeeList.filter(id => !existingEmpSet.has(id))) {
-                        const rate = role.rates?.[emp_id];
-                        if (rate == null || isNaN(rate)) {
-                            console.warn(`⏭️ Skipping employee ${emp_id} due to missing rate.`);
-                            continue;
-                        }
+                        const rawRate = role.rates?.[emp_id];
+                        const parsed = parseFloat(rawRate);
+                        const rateToSend = isNaN(parsed) ? null : parsed;
+
                         await axios.post(API.ASSIGN_EMPLOYEE, {
                             sow_id: sowIdToUse,
                             emp_id,
                             role_id: role.role_id,
-                            rate: parseFloat(rate),
+                            rate: rateToSend,
                         }, {
                             headers: { Authorization: `Bearer ${token}` },
                         });
