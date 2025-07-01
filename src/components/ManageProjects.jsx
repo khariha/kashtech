@@ -295,14 +295,28 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             return;
         }
 
-        // make sure required project fields are filled
-        const requiredFields = ["project_name", "original_start_date", "original_end_date"];
-        for (const field of requiredFields) {
-            if (!formData[field]) {
-                alert(`Please fill in ${field.replaceAll("_", " ")}`);
-                return;
-            }
+        // ─── Field-by-field validations ────────────────────────────────────────────────
+        if (!formData.project_name.trim()) {
+            alert("Project Name is required.");
+            return;
         }
+        if (!formData.original_start_date) {
+            alert("Start Date is required.");
+            return;
+        }
+        if (!formData.original_end_date) {
+            alert("End Date is required.");
+            return;
+        }
+        if (
+            !formData.total_projected_hours ||
+            isNaN(formData.total_projected_hours) ||
+            Number(formData.total_projected_hours) <= 0
+        ) {
+            alert("Estimated Hours must be a positive number.");
+            return;
+        }
+        // ────────────────────────────────────────────────────────────────────────────
 
         // start with any roles the user already added in this session
         let assignmentsToSave = [...roleAssignments];
@@ -444,6 +458,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
 
 
+
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white rounded-2xl w-[1100px] p-8 relative shadow-lg overflow-y-auto max-h-[90vh]">
@@ -514,12 +529,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm mb-1">Estimated Hours</label>
+                            <label className="block text-sm mb-1">*Estimated Hours</label>
                             <input type="number" value={formData.total_projected_hours} onChange={(e) => setFormData({ ...formData, total_projected_hours: e.target.value })} className="w-full border rounded px-3 py-2" />
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-semibold mb-1">Assign Roles</label>
+                            <label className="block text-sm font-semibold mb-1">*Assign Roles</label>
                             <div className="flex flex-col gap-2 mb-2">
                                 <div className="flex gap-2">
                                     <select
@@ -547,7 +562,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                                     <input
                                         type="number"
-                                        placeholder="Estimated Hours"
+                                        placeholder="*Estimated Hours"
                                         value={estimatedRoleHours}
                                         onChange={(e) => setEstimatedRoleHours(e.target.value)}
                                         className="w-1/3 border rounded px-3 py-2"
