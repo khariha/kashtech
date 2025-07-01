@@ -323,6 +323,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         const roleId = parseInt(selectedRoleId);
         const estimatedHours = parseInt(estimatedRoleHours);
 
+        // if user has picked a role but not entered valid hours, show specific alert
+        if (roleId && (isNaN(estimatedHours) || estimatedHours <= 0)) {
+            alert("Please enter valid estimated hours for the selected role.");
+            return;
+        }
+
         // auto-add the currently selected role (employees optional)
         const hasUnaddedRole =
             roleId &&
@@ -450,6 +456,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Save failed. See console for details.");
         }
     };
+
 
 
 
