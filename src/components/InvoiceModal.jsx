@@ -68,6 +68,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
 
 
     const applyFilters = async () => {
+        // validate required filters
         if (!selectedCompany || !startDate || !endDate || selectedProjects.length === 0) {
             alert("Please select Company, Project(s), Start Date and End Date.");
             return;
@@ -86,12 +87,25 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
                     endDate: endDate.toISOString(),
                 },
             });
-            groupDataByProject(Array.isArray(res.data) ? res.data : []);
+
+            // normalize to array
+            const data = Array.isArray(res.data) ? res.data : [];
+
+            // if no records returned, alert and clear previous results
+            if (data.length === 0) {
+                alert("No data available for the selected period.");
+                setGroupedData({});
+                return;
+            }
+
+            // otherwise, group and display
+            groupDataByProject(data);
         } catch (err) {
             console.error("Failed to fetch invoice data", err);
             alert("Error: " + (err.response?.data?.error || "Unable to load invoice data"));
         }
     };
+
 
     const groupDataByProject = (data) => {
         const grouped = {};
