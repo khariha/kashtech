@@ -18,6 +18,19 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
     const [groupedData, setGroupedData] = useState({});
     const [expandedUser, setExpandedUser] = useState({});
 
+    // add this useEffect below all your other useEffects:
+    useEffect(() => {
+        // whenever our groupedData changes, auto-expand all rows:
+        const allExpanded = {};
+        Object.entries(groupedData).forEach(([projectKey, rows]) => {
+            rows.forEach(row => {
+                const key = `${projectKey}_${row.emp_id}`;
+                allExpanded[key] = true;
+            });
+        });
+        setExpandedUser(allExpanded);
+    }, [groupedData]);
+
     useEffect(() => {
         const fetchCompanies = async () => {
             try {
