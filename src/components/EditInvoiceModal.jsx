@@ -99,31 +99,52 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
         setGroupedData({});
     };
 
+    // Inside EditInvoiceModal component
+
     const applyFilters = async () => {
+        // 1️⃣ Validate required filters
+        if (!selectedProjects.length || !startDate || !endDate) {
+            alert("Please select Project(s), Start Date and End Date.");
+            return;
+        }
+
         const sowIds = selectedProjects.map(p => p.value);
-        if (!sowIds.length) return;
-
         const token = localStorage.getItem("token");
-        const res = await axios.get(API.GET_INVOICE_TIMESHEET_DATA, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: {
-                companyId: selectedCompany,
-                projectIds: sowIds.join(","),
-                startDate,
-                endDate
+
+        try {
+            const res = await axios.get(API.GET_INVOICE_TIMESHEET_DATA, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: {
+                    companyId: selectedCompany,
+                    projectIds: sowIds.join(","),
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                }
+            });
+
+            // 2️⃣ Normalize and check for empty result
+            const items = Array.isArray(res.data) ? res.data : [];
+            if (items.length === 0) {
+                alert("No data available for the selected period.");
+                setGroupedData({});
+                return;
             }
-        });
 
-        const grouped = {};
-        const items = Array.isArray(res.data) ? res.data : [];
-        items.forEach(item => {
-            const key = item.project_name || "Project";
-            if (!grouped[key]) grouped[key] = [];
-            grouped[key].push(item);
-        });
+            // 3️⃣ Group and display the data
+            const grouped = {};
+            items.forEach(item => {
+                const key = item.project_name || "Project";
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+            setGroupedData(grouped);
 
-        setGroupedData(grouped);
+        } catch (err) {
+            console.error("❌ Failed to fetch invoice data", err);
+            alert("Error: " + (err.response?.data?.error || "Unable to load invoice data"));
+        }
     };
+
 
     const handleRateChange = (projectKey, index, rate) => {
         const updated = { ...groupedData };
