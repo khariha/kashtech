@@ -50,7 +50,15 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             const res = await axios.get(API.FETCH_ALL_EMPLOYEES, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setEmployees(Array.isArray(res.data) ? res.data : []);
+            // make sure it's an array
+            let data = Array.isArray(res.data) ? res.data : [];
+            // sort in place by "First Last"
+            data.sort((a, b) => {
+                const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+                const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            setEmployees(data);
         } catch (err) {
             console.error("Failed to fetch employees", err);
         }
@@ -98,7 +106,14 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                 }),
             ]);
 
+            // build & sort employees list A→Z by "First Last"
             const employeesList = Array.isArray(empRes.data) ? empRes.data : [];
+            employeesList.sort((a, b) => {
+                const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
+                const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+
             const rolesList = Array.isArray(roleRes.data) ? roleRes.data : [];
 
             const assignmentData = (assignRes.data || []).map((r) => {
@@ -134,6 +149,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             alert("Couldn't load project roles – check console/network for issues.");
         }
     };
+
 
     useEffect(() => {
         console.log("Current roleAssignments", roleAssignments);
