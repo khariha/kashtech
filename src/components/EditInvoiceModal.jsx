@@ -65,6 +65,12 @@ const EditInvoiceModal = ({ invoice, onClose, onInvoiceUpdated }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const projectData = Array.isArray(res.data) ? res.data : [];
+
+
+            projectData.sort((a, b) =>
+                a.project_name.localeCompare(b.project_name)
+            );
+
             setProjects(projectData);
 
             const invoiceProjects = invoice.project_name?.split(",").map(p => p.trim()) || [];

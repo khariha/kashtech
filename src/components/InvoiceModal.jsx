@@ -54,20 +54,26 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
     }, []);
 
     const handleCompanyChange = async (companyIdRaw) => {
-        const companyId = companyIdRaw; // ← fix here: don't cast to Number
+        const companyId = companyIdRaw; // ← don’t cast to Number
         setSelectedCompany(companyId);
         setSelectedProjects([]);
         setGroupedData({});
 
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get(API.GET_PROJECTS_BY_COMPANY_INVOICE(companyId), {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await axios.get(
+                API.GET_PROJECTS_BY_COMPANY_INVOICE(companyId),
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
             if (Array.isArray(res.data)) {
                 console.log("✅ Projects for company:", res.data);
-                setProjects(res.data);
+                // ── Sort alphabetically by project_name ───────────────────────
+                const projectData = [...res.data].sort((a, b) =>
+                    a.project_name.localeCompare(b.project_name)
+                );
+                // ────────────────────────────────────────────────────────────────
+                setProjects(projectData);
             } else {
                 console.warn("⚠️ Unexpected projects response:", res.data);
                 setProjects([]);
@@ -76,6 +82,7 @@ const InvoiceModal = ({ onClose, onInvoiceSaved }) => {
             console.error("❌ Failed to fetch projects", err);
         }
     };
+
 
 
 
