@@ -36,45 +36,35 @@ const ManageClients = () => {
         try {
             const token = localStorage.getItem("token");
 
-            // 1️⃣ fetch client list
+            // 1️⃣ fetch all clients
             const clientRes = await axios.get(API.FETCH_MANAGE_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+            const clientsData = Array.isArray(clientRes.data.data)
+                ? clientRes.data.data
+                : clientRes.data;
 
-            // 2️⃣ fetch only this company’s admins
-            //    instead of GET_ALL_COMPANY_ADMINS, use GET_ADMINS_BY_COMPANY/:companyId
-            const adminRes = await axios.get(
-                `${API.GET_ADMINS_BY_COMPANY}/${companyId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            // 2️⃣ fetch ALL company‐admin assignments
+            const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const allAdmins = Array.isArray(adminRes.data.data)
+                ? adminRes.data.data
+                : adminRes.data;
 
-            // normalize the shape
-            const safeAdmins = Array.isArray(adminRes.data)
-                ? adminRes.data
-                : Array.isArray(adminRes.data.data)
-                    ? adminRes.data.data
-                    : [];
-
-            // group by company_id
-            const adminMap = {};
-            for (const a of safeAdmins) {
-                if (!adminMap[a.company_id]) adminMap[a.company_id] = [];
-                adminMap[a.company_id].push({
+            // 3️⃣ group them by company_id
+            const adminMap = allAdmins.reduce((map, a) => {
+                map[a.company_id] = map[a.company_id] || [];
+                map[a.company_id].push({
                     usn: a.kash_operations_usn,
                     role: a.role || "Admin",
                     full_name: a.full_name || a.kash_operations_usn,
                 });
-            }
+                return map;
+            }, {});
 
-            // normalize clients
-            const safeClients = Array.isArray(clientRes.data.data)
-                ? clientRes.data.data
-                : Array.isArray(clientRes.data)
-                    ? clientRes.data
-                    : [];
-
-            // merge in sorted admin lists
-            const enriched = safeClients.map((c) => ({
+            // 4️⃣ enrich each client with its sorted admin list
+            const enriched = clientsData.map((c) => ({
                 ...c,
                 admins: (adminMap[c.company_id] || []).sort((x, y) =>
                     x.full_name.localeCompare(y.full_name)
@@ -91,6 +81,7 @@ const ManageClients = () => {
             console.error("❌ Error fetching clients/admins:", err);
         }
     };
+
 
 
     const handleSort = (key) => {
