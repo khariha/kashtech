@@ -69,9 +69,9 @@ const ManageClients = () => {
 
             const enrichedClients = safeClients.map((client) => ({
                 ...client,
-                admins: Array.isArray(adminMap[client.company_id])
-                    ? adminMap[client.company_id]
-                    : [],
+                admins: (adminMap[client.company_id] || [])
+                    .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+
                 projects: Array.isArray(client.projects)
                     ? client.projects
                     : typeof client.projects === "object" && client.projects !== null
