@@ -36,26 +36,32 @@ const ManageClients = () => {
         try {
             const token = localStorage.getItem("token");
 
-            // 1️⃣ fetch all clients
+            // 1️⃣ Fetch all clients
             const clientRes = await axios.get(API.FETCH_MANAGE_CLIENTS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const clientsData = Array.isArray(clientRes.data.data)
-                ? clientRes.data.data
-                : clientRes.data;
+            // back-end might return [ ... ] or { data: [ ... ] }
+            const clientsData = Array.isArray(clientRes.data)
+                ? clientRes.data
+                : Array.isArray(clientRes.data.data)
+                    ? clientRes.data.data
+                    : [];
 
-            // 2️⃣ fetch ALL company‐admin assignments
+            // 2️⃣ Fetch all company-admin assignments
             const adminRes = await axios.get(API.GET_ALL_COMPANY_ADMINS, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const allAdmins = Array.isArray(adminRes.data.data)
-                ? adminRes.data.data
-                : adminRes.data;
+            const allAdmins = Array.isArray(adminRes.data)
+                ? adminRes.data
+                : Array.isArray(adminRes.data.data)
+                    ? adminRes.data.data
+                    : [];
 
-            // 3️⃣ group them by company_id
+            // 3️⃣ Group admins by company_id
             const adminMap = allAdmins.reduce((map, a) => {
-                map[a.company_id] = map[a.company_id] || [];
-                map[a.company_id].push({
+                const key = a.company_id;
+                if (!map[key]) map[key] = [];
+                map[key].push({
                     usn: a.kash_operations_usn,
                     role: a.role || "Admin",
                     full_name: a.full_name || a.kash_operations_usn,
@@ -63,15 +69,15 @@ const ManageClients = () => {
                 return map;
             }, {});
 
-            // 4️⃣ enrich each client with its sorted admin list
+            // 4️⃣ Attach sorted admin list and normalize projects
             const enriched = clientsData.map((c) => ({
                 ...c,
-                admins: (adminMap[c.company_id] || []).sort((x, y) =>
-                    x.full_name.localeCompare(y.full_name)
+                admins: (adminMap[c.company_id] || []).sort((a, b) =>
+                    a.full_name.localeCompare(b.full_name)
                 ),
                 projects: Array.isArray(c.projects)
                     ? c.projects
-                    : typeof c.projects === "object" && c.projects !== null
+                    : c.projects && typeof c.projects === "object"
                         ? Object.values(c.projects)
                         : [],
             }));
@@ -81,6 +87,7 @@ const ManageClients = () => {
             console.error("❌ Error fetching clients/admins:", err);
         }
     };
+
 
 
 
