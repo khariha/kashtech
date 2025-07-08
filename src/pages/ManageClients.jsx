@@ -36,54 +36,62 @@ const ManageClients = () => {
         try {
             const token = localStorage.getItem("token");
 
-            const [clientRes, adminRes] = await Promise.all([
-                axios.get(API.FETCH_MANAGE_CLIENTS, {
-                    headers: { Authorization: `Bearer ${token}` },
-                }),
-                axios.get(API.GET_ALL_COMPANY_ADMINS, {
-                    headers: { Authorization: `Bearer ${token}` },
-                }),
-            ]);
+            // 1️⃣ fetch client list
+            const clientRes = await axios.get(API.FETCH_MANAGE_CLIENTS, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            const adminMap = {};
-            const admins = Array.isArray(adminRes.data?.data)
-                ? adminRes.data.data
-                : Array.isArray(adminRes.data)
-                    ? adminRes.data
+            // 2️⃣ fetch only this company’s admins
+            //    instead of GET_ALL_COMPANY_ADMINS, use GET_ADMINS_BY_COMPANY/:companyId
+            const adminRes = await axios.get(
+                `${API.GET_ADMINS_BY_COMPANY}/${companyId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // normalize the shape
+            const safeAdmins = Array.isArray(adminRes.data)
+                ? adminRes.data
+                : Array.isArray(adminRes.data.data)
+                    ? adminRes.data.data
                     : [];
 
-            for (const row of admins) {
-                if (!adminMap[row.company_id]) adminMap[row.company_id] = [];
-                adminMap[row.company_id].push({
-                    usn: row.kash_operations_usn,
-                    role: row.role || "Admin",
-                    full_name: row.full_name || row.kash_operations_usn,
+            // group by company_id
+            const adminMap = {};
+            for (const a of safeAdmins) {
+                if (!adminMap[a.company_id]) adminMap[a.company_id] = [];
+                adminMap[a.company_id].push({
+                    usn: a.kash_operations_usn,
+                    role: a.role || "Admin",
+                    full_name: a.full_name || a.kash_operations_usn,
                 });
             }
 
-            const safeClients = Array.isArray(clientRes.data?.data)
+            // normalize clients
+            const safeClients = Array.isArray(clientRes.data.data)
                 ? clientRes.data.data
                 : Array.isArray(clientRes.data)
                     ? clientRes.data
                     : [];
 
-            const enrichedClients = safeClients.map((client) => ({
-                ...client,
-                admins: (adminMap[client.company_id] || [])
-                    .sort((a, b) => a.full_name.localeCompare(b.full_name)),
-
-                projects: Array.isArray(client.projects)
-                    ? client.projects
-                    : typeof client.projects === "object" && client.projects !== null
-                        ? Object.values(client.projects)
+            // merge in sorted admin lists
+            const enriched = safeClients.map((c) => ({
+                ...c,
+                admins: (adminMap[c.company_id] || []).sort((x, y) =>
+                    x.full_name.localeCompare(y.full_name)
+                ),
+                projects: Array.isArray(c.projects)
+                    ? c.projects
+                    : typeof c.projects === "object" && c.projects !== null
+                        ? Object.values(c.projects)
                         : [],
             }));
 
-            setClients(enrichedClients);
+            setClients(enriched);
         } catch (err) {
-            console.error("❌ Error fetching clients:", err);
+            console.error("❌ Error fetching clients/admins:", err);
         }
     };
+
 
     const handleSort = (key) => {
         let direction = "asc";
