@@ -17,51 +17,21 @@ const ManageAdmins = ({ companyId, companyName, onClose }) => {
     const fetchAdmins = async () => {
         try {
             const token = localStorage.getItem("token");
-
-            // 1) get the admins already assigned to this company
-            const res = await axios.get(
-                `${API.GET_ADMINS_BY_COMPANY}/${companyId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const assigned = Array.isArray(res.data) ? res.data : [];
-            // keep only Admin or Super Admin
-            const filteredAssigned = assigned.filter(
-                admin => admin.role === "Admin" || admin.role === "Super Admin"
-            );
-
-            // 2) fetch _all_ employees so we can find Super Admins
-            const empRes = await axios.get(API.FETCH_ADMIN_EMPLOYEES, {
+            const res = await axios.get(`${API.GET_ADMINS_BY_COMPANY}/${companyId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const allEmps = Array.isArray(empRes.data) ? empRes.data : [];
 
-            // pick out Super Admins
-            const superAdmins = allEmps.filter(emp => emp.role === "Super Admin");
-
-            // 3) merge in any Super Admin not already in filteredAssigned
-            const merged = [...filteredAssigned];
-            superAdmins.forEach(sa => {
-                if (!merged.some(a => a.kash_operations_usn === sa.kash_operations_usn)) {
-                    merged.push({
-                        kash_operations_usn: sa.kash_operations_usn,
-                        full_name: sa.full_name,
-                        role: sa.role,
-                    });
-                }
-            });
-
-            // optional: sort the final admins list A→Z as well
-            merged.sort((a, b) =>
-                (a.full_name || a.kash_operations_usn)
-                    .localeCompare(b.full_name || b.kash_operations_usn)
+            const filteredAdmins = res.data.filter(
+                (admin) => admin.role === "Admin" || admin.role === "Super Admin"
             );
 
-            setAdmins(merged);
+            setAdmins(filteredAdmins);
         } catch (err) {
-            console.error("❌ Failed to fetch admins", err);
+            console.error("Failed to fetch admins", err);
             setAdmins([]);
         }
     };
+
 
     const fetchEmployees = async () => {
         try {
@@ -70,20 +40,10 @@ const ManageAdmins = ({ companyId, companyName, onClose }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // normalize
-            let data = Array.isArray(res.data) ? res.data : [];
-
-            // only include users whose role is exactly "Admin"
-            const adminOnly = data.filter(emp => emp.role === "Admin");
-
-            // sort A→Z by full_name
-            adminOnly.sort((a, b) =>
-                a.full_name.localeCompare(b.full_name)
-            );
-
-            setEmployees(adminOnly);
+            console.log("✅ Filtered Admin Users:", res.data);
+            setEmployees(res.data);
         } catch (err) {
-            console.error("❌ Failed to fetch admin‐level employees", err);
+            console.error("❌ Failed to fetch admin-level employees", err);
         }
     };
 
