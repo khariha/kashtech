@@ -113,7 +113,7 @@ const TimesheetHeader = ({
         )}
       </div>
 
-      {/* View Report Button (Admin/Super Admin Only) */}
+      {/* View Report Button (Admin/Super Admin Only) Button is not best practice*/}
       {(userRole === "Admin" || userRole === "Super Admin") && (
         <button
           onClick={() => navigate("/timesheet-report")}

@@ -30,6 +30,9 @@ const TimesheetForm = ({
         const res = await axios.get(API.GET_COMPANIES_BY_BILLABLE(isBillable), {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        console.log("Fetched companies:", res.data);
+
         setCompanyOptions(res.data);
         setCompany("");
         setProject("");
