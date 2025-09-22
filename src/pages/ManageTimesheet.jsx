@@ -232,7 +232,8 @@ const ManageTimesheet = () => {
           timesheet_status_entry: "Submitted",
         };
 
-        const matchInOriginal = originalEntries.find(
+        /*
+        const matchInOriginal = originalEntries.find( // Issue probably stems from here
           (orig) =>
             orig.emp_id === e.emp_id &&
             orig.sow_id === e.sow_id &&
@@ -241,6 +242,14 @@ const ManageTimesheet = () => {
 
         if (matchInOriginal) updateEntries.push(payload);
         else newEntries.push(payload);
+        */
+
+        if (e.timesheet_entry_id) { // New check that is combo-agnostic
+          updateEntries.push({ ...payload, timesheet_entry_id: e.timesheet_entry_id });
+        } else {
+          newEntries.push(payload);
+        }
+        
       }
 
       console.log("🗑️ Entries to delete:", deletedEntriesRef.current);
