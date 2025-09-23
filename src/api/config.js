@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5001/api"; // use an env variable to derive
+const BASE_URL = "http://localhost:5000/api"; // use an env variable to derive
 
 const API = {
   // 🔐 Auth
