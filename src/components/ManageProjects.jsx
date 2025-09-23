@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { FaEdit, FaTrash, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import API from "../api/config";
@@ -270,7 +270,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
             // Don't alert here — allow user to correct after
         });
 
-
         const updatedRole = {
             role_id: roleId,
             role_name: role.role_name,
@@ -303,6 +302,23 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
         setEditingRoleIndex(null);
     };
 
+    // Sum all role estimated hours (coerce safely)
+    const totalEstimated = useMemo(
+        () =>
+            roleAssignments.reduce(
+                (sum, r) => sum + (parseInt(r.estimated_hours, 10) || 0),
+                0
+            ),
+        [roleAssignments]
+    );
+
+    // Keep formData in sync so payload uses the derived value
+    useEffect(() => {
+        setFormData((prev) => ({
+            ...prev,
+            total_projected_hours: totalEstimated, // keep as a number
+        }));
+    }, [totalEstimated]);
 
     const handleSave = async () => {
         const token = localStorage.getItem("token");
@@ -473,17 +489,6 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
     };
 
 
-
-
-
-
-
-
-
-
-
-
-
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white rounded-2xl w-[1100px] p-8 relative shadow-lg overflow-y-auto max-h-[90vh]">
@@ -554,35 +559,71 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm mb-1">*Estimated Hours</label>
-                            <input type="number" value={formData.total_projected_hours} onChange={(e) => setFormData({ ...formData, total_projected_hours: e.target.value })} className="w-full border rounded px-3 py-2" />
+                            <label className="block text-sm mb-1">*Estimated Hours (auto)</label>
+                            <input
+                                type="number"
+                                value={totalEstimated}
+                                readOnly
+                                className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-600 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Calculated from role estimated hours.
+                            </p>
                         </div>
 
+
                         <div className="mb-4">
-                            <label className="block text-sm font-semibold mb-1">*Assign Roles</label>
-                            <div className="flex flex-col gap-2 mb-2">
+
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-semibold">*Assign Roles</label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (showNewRoleField) {
+                                            // Cancel: hide new role UI and restore defaults
+                                            setShowNewRoleField(false);
+                                            setNewRoleName("");
+                                            setSelectedRoleId(null); // or keep previous value if you want
+                                        } else {
+                                            // Add new role mode
+                                            setShowNewRoleField(true);
+                                            setSelectedRoleId(null);
+                                        }
+                                    }}
+                                    className={`text-sm font-medium ${showNewRoleField
+                                        ? "text-red-600 hover:text-red-800"
+                                        : "text-purple-600 hover:text-purple-800"
+                                        }`}
+                                >
+                                    {showNewRoleField ? "Cancel" : "+ Create New Role"}
+                                </button>
+                            </div>
+
+
+                            <div className="flex flex-col gap-1 mb-2">
+                                
                                 <div className="flex gap-2">
                                     <select
-                                        value={selectedRoleId ?? ""}
+                                        value={showNewRoleField ? "new" : selectedRoleId ?? ""}
                                         onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val === "new") {
-                                                setShowNewRoleField(true);
-                                                setSelectedRoleId(null);
-                                            } else {
-                                                setShowNewRoleField(false);
-                                                setSelectedRoleId(parseInt(val));
+                                            if (!showNewRoleField) {
+                                                const val = e.target.value;
+                                                setSelectedRoleId(val ? parseInt(val, 10) : null);
                                             }
                                         }}
-                                        className="w-1/2 border rounded px-3 py-2"
+                                        disabled={showNewRoleField}
+                                        className={`w-1/2 border rounded px-3 py-2 ${showNewRoleField
+                                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                                : ""
+                                            }`}
                                     >
-                                        <option value="">Select Role</option>
-                                        {rolesFromDB.map(role => (
-                                            <option key={role.role_id} value={role.role_id}>
-                                                {role.role_name}
-                                            </option>
-                                        ))}
-                                        <option value="new">+ Add New Role</option>
+                                        <option value="">{showNewRoleField ? "Creating New Role" : "Select Role"}</option>
+                                        {!showNewRoleField &&
+                                            rolesFromDB.map((role) => (
+                                                <option key={role.role_id} value={role.role_id}>
+                                                    {role.role_name}
+                                                </option>
+                                            ))}
                                     </select>
 
                                     <input
@@ -590,12 +631,12 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
                                         placeholder="*Estimated Hours"
                                         value={estimatedRoleHours}
                                         onChange={(e) => setEstimatedRoleHours(e.target.value)}
-                                        className="w-1/3 border rounded px-3 py-2"
+                                        className="border rounded px-3 py-2"
                                     />
                                 </div>
 
                                 {showNewRoleField && (
-                                    <div className="mb-2">
+                                    <div className="my-2">
                                         <label className="block text-sm mb-1">New Role Name</label>
                                         <input
                                             type="text"
@@ -625,6 +666,7 @@ const ManageProjects = ({ companyId, companyName, onClose }) => {
 
                             <button onClick={handleAddRole} className="bg-purple-600 text-white px-4 py-2 rounded">+ Add</button>
                         </div>
+
                         {Array.isArray(roleAssignments) && roleAssignments.length > 0 ? (
                             roleAssignments.map((role, index) => (
                                 <div key={`${role.role_id}-${index}`} className="mb-3 border p-3 rounded bg-gray-50">

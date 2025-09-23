@@ -2,14 +2,14 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaEdit } from "react-icons/fa";
-import { format } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { CSVLink } from "react-csv";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import API from "../api/config";
-import { startOfWeek } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+
 
 const TimesheetReport = () => {
     const [reportData, setReportData] = useState([]);
@@ -40,32 +40,15 @@ const TimesheetReport = () => {
     const fetchReport = async (customParams = {}) => {
         try {
             let url = API.TIMESHEET_REPORT;
-            let params = {};
 
-            if (filterOption === "monthToDate") {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                params.startDate = format(start, "yyyy-MM-dd");
-                params.endDate = format(now, "yyyy-MM-dd");
-            } else if (filterOption === "lastMonth") {
-                const now = new Date();
-                const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                const end = new Date(now.getFullYear(), now.getMonth(), 0);
-                params.startDate = format(start, "yyyy-MM-dd");
-                params.endDate = format(end, "yyyy-MM-dd");
-            } else if (filterOption === "customRange" && customStartDate && customEndDate) {
-                params.startDate = format(customStartDate, "yyyy-MM-dd");
-                params.endDate = format(customEndDate, "yyyy-MM-dd");
-            }
-
-            Object.assign(params, customParams);
+            const baseDateParams = buildWeekDateParams();
+            const params = { ...baseDateParams, ...customParams };
 
             const res = await axios.get(url, {
                 headers: { Authorization: `Bearer ${token}` },
                 params,
             });
 
-            // 🚨 Check if response is unexpected HTML (e.g., session timeout)
             if (res.headers["content-type"]?.includes("text/html")) {
                 console.warn("⚠️ Received HTML instead of JSON. Possible session timeout.");
                 alert("Session may have expired. Please log in again.");
@@ -80,7 +63,7 @@ const TimesheetReport = () => {
     };
 
 
-    useEffect(() => {
+    useEffect(() => { // Use effect isn't used to fetch data in a well built react system
         fetchReport();
     }, [filterOption, customStartDate, customEndDate]);
 
@@ -103,54 +86,72 @@ const TimesheetReport = () => {
     const applyFilters = () => {
         const params = {};
 
-        // ✅ Clients
-        if (selectedClients.length > 0) {
-            params.clients = selectedClients.join(",");
-        }
+        if (selectedClients.length > 0) params.clients = selectedClients.join(",");
+        if (selectedProjects.length > 0) params.projects = selectedProjects.join(",");
+        if (selectedEmployees.length > 0) params.employees = selectedEmployees.join(",");
 
-        // ✅ Projects
-        if (selectedProjects.length > 0) {
-            params.projects = selectedProjects.join(",");
-        }
+        if (isBillable && !isNonBillable) params.billable = "true";
+        else if (!isBillable && isNonBillable) params.billable = "false";
 
-        // ✅ Employees
-        if (selectedEmployees.length > 0) {
-            params.employees = selectedEmployees.join(",");
-        }
-
-        // ✅ Billable Status — sent as string
-        if (isBillable && !isNonBillable) {
-            params.billable = "true";  // <-- changed from boolean to string
-        } else if (!isBillable && isNonBillable) {
-            params.billable = "false"; // <-- changed from boolean to string
-        }
-        // If both are selected or neither, billable will not be passed (shows all)
-
-        // ✅ Date Filters
-        if (filterOption === "monthToDate") {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            params.startDate = format(start, "yyyy-MM-dd");
-            params.endDate = format(now, "yyyy-MM-dd");
-        } else if (filterOption === "lastMonth") {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const end = new Date(now.getFullYear(), now.getMonth(), 0);
-            params.startDate = format(start, "yyyy-MM-dd");
-            params.endDate = format(end, "yyyy-MM-dd");
-        } else if (filterOption === "customRange" && customStartDate && customEndDate) {
-            params.startDate = format(customStartDate, "yyyy-MM-dd");
-            params.endDate = format(customEndDate, "yyyy-MM-dd");
-        }
-
-        console.log("📤 Sending filter params:", params);
+        // Weekly date params
+        Object.assign(params, buildWeekDateParams());
 
         fetchReport(params);
         setShowFilters(false);
     };
 
+    const weekBounds = (date) => ({
+        start: startOfWeek(date, { weekStartsOn: 1 }), // Monday
+        end: endOfWeek(date, { weekStartsOn: 1 }),     // Sunday
+    });
 
+    const buildWeekDateParams = () => {
+        const now = new Date();
 
+        if (filterOption === "currentWeek") {
+            const { start, end } = weekBounds(now);
+            return {
+                startDate: format(start, "yyyy-MM-dd"),
+                endDate: format(end, "yyyy-MM-dd"),
+            };
+        }
+
+        if (filterOption === "last4Weeks") {
+            // From Monday of 3 weeks ago (inclusive) through end of this week (inclusive)
+            const { start: currentStart, end: currentEnd } = weekBounds(now);
+            const start = startOfWeek(subWeeks(currentStart, 3), { weekStartsOn: 1 });
+            return {
+                startDate: format(start, "yyyy-MM-dd"),
+                endDate: format(currentEnd, "yyyy-MM-dd"),
+            };
+        }
+
+        if (filterOption === "last12Weeks") {
+            const { start: currentStart, end: currentEnd } = weekBounds(now);
+            const start = startOfWeek(subWeeks(currentStart, 11), { weekStartsOn: 1 });
+            return {
+                startDate: format(start, "yyyy-MM-dd"),
+                endDate: format(currentEnd, "yyyy-MM-dd"),
+            };
+        }
+
+        if (filterOption === "customRange" && customStartDate && customEndDate) {
+            // Snap custom range to week boundaries to stay “weekly”
+            const { start } = weekBounds(customStartDate);
+            const { end } = weekBounds(customEndDate);
+            return {
+                startDate: format(start, "yyyy-MM-dd"),
+                endDate: format(end, "yyyy-MM-dd"),
+            };
+        }
+
+        // Fallback: current week
+        const { start, end } = weekBounds(now);
+        return {
+            startDate: format(start, "yyyy-MM-dd"),
+            endDate: format(end, "yyyy-MM-dd"),
+        };
+    };
 
     const toggleRow = (idx) => {
         setExpandedRows((prev) =>
@@ -224,9 +225,13 @@ const TimesheetReport = () => {
 
     const fetchClientList = async () => {
         try {
-            const res = await axios.get("/api/timesheet/companies?billable=true", {
+
+            const res = await axios.get(API.GET_COMPANIES_BY_BILLABLE(true), {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
+            // console.log("Fetched client list:", res.data);
+            
             setClientList(res.data);
         } catch (err) {
             console.error("❌ Error fetching clients", err);
@@ -247,18 +252,6 @@ const TimesheetReport = () => {
             setEmployeeList(res.data || []);
         } catch (err) {
             console.error("❌ Error fetching employees", err);
-        }
-    };
-
-
-    const fetchProjectList = async (companyId) => {
-        try {
-            const res = await axios.get(`/api/timesheet/projects/${companyId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setProjectList(res.data);
-        } catch (err) {
-            console.error("❌ Error fetching projects", err);
         }
     };
 
@@ -330,8 +323,9 @@ const TimesheetReport = () => {
                         onChange={(e) => setFilterOption(e.target.value)}
                         className="border text-sm rounded px-2 py-1"
                     >
-                        <option value="monthToDate">Month to Date</option>
-                        <option value="lastMonth">Last Month</option>
+                        <option value="currentWeek">Current Week</option>
+                        <option value="last4Weeks">Last 4 Weeks</option>
+                        <option value="last12Weeks">Last 12 Weeks</option>
                         <option value="customRange">Custom Range</option>
                     </select>
 

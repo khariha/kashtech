@@ -16,6 +16,7 @@ import ManageTimesheet from "./pages/ManageTimesheet";
 import ManageProjects from "./components/ManageProjects";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import AccessDenied from "./pages/AccessDenied";
+import ChangePassword from "./pages/ChangePassword";
 
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -63,6 +64,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login key={location.key} />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/projects/:sowId" element={withLayout(ProjectDetails)} />
       <Route path="/manage-projects/:companyId" element={<ManageProjects />} />
       <Route

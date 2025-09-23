@@ -141,10 +141,6 @@ const ManageTimesheet = () => {
   }, [weekStartDate, employee]);
 
 
-
-
-
-
   const handleAddToSheet = ({ company, companyName, project, projectName, workArea, taskArea, ticket }) => {
     if (!company || !project) {
       alert("Please fill in all required fields.");
@@ -168,18 +164,41 @@ const ManageTimesheet = () => {
     setEntries((prev) => [...prev, newEntry]);
   };
 
-  const handleRemoveEntry = (rowIdx) => {
+  const handleRemoveEntry = async (rowIdx) => {
     const removed = entries[rowIdx];
     console.log("🧹 Trying to remove:", removed);
-    setEntries((prev) => prev.filter((_, i) => i !== rowIdx));
 
-    if (!removed.timesheet_entry_id) {
-      console.log("⛔ Skipped delete tracking: Missing timesheet_entry_id.");
+    // Make sure we have the entryId first
+    if (!removed?.timesheet_entry_id) {
+      console.log("⛔ Skipped delete: Missing timesheet_entry_id.");
       return;
     }
 
-    deletedEntriesRef.current.push({ timesheet_entry_id: removed.timesheet_entry_id });
-    console.log("🚨 Deleting from ManageTimesheet:", deletedEntriesRef.current);
+    try {
+      const res = await fetch(
+        API.DELETE_TIMESHEET_ENTRY_BY_ID(removed.timesheet_entry_id),
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        console.error("❌ Failed to delete:", msg);
+        return;
+      }
+
+      console.log(`🗑️ Deleted entryId=${removed.timesheet_entry_id}`);
+
+      // Update state only if delete succeeds
+      setEntries((prev) => prev.filter((_, i) => i !== rowIdx));
+
+      // Track deleted entries locally if needed
+      deletedEntriesRef.current.push({
+        timesheet_entry_id: removed.timesheet_entry_id,
+      });
+      console.log("🚨 Deleting from ManageTimesheet:", deletedEntriesRef.current);
+    } catch (err) {
+      console.error("❌ Delete request failed:", err);
+    }
   };
 
   const handleSave = async () => {
@@ -213,7 +232,8 @@ const ManageTimesheet = () => {
           timesheet_status_entry: "Submitted",
         };
 
-        const matchInOriginal = originalEntries.find(
+        /*
+        const matchInOriginal = originalEntries.find( // Issue probably stems from here
           (orig) =>
             orig.emp_id === e.emp_id &&
             orig.sow_id === e.sow_id &&
@@ -222,6 +242,14 @@ const ManageTimesheet = () => {
 
         if (matchInOriginal) updateEntries.push(payload);
         else newEntries.push(payload);
+        */
+
+        if (e.timesheet_entry_id) { // New check that is combo-agnostic
+          updateEntries.push({ ...payload, timesheet_entry_id: e.timesheet_entry_id });
+        } else {
+          newEntries.push(payload);
+        }
+        
       }
 
       console.log("🗑️ Entries to delete:", deletedEntriesRef.current);

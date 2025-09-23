@@ -216,7 +216,7 @@ const DailyTimesheetReport = () => {
 
     const fetchClientList = async () => {
         try {
-            const res = await axios.get("/api/timesheet/companies?billable=true", {
+            const res = await axios.get(API.GET_CLIENTS_BY_BILLABLE(true), {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setClientList(res.data);
@@ -670,9 +670,6 @@ const DailyTimesheetReport = () => {
                 <table className="w-full table-auto text-sm border-collapse">
                     <thead className="bg-purple-100 dark:bg-purple-900 text-left">
                         <tr>
-                            <th className="py-3 px-4 font-semibold cursor-pointer" onClick={() => handleSort("period_start_date")}>
-                                Timesheet Date
-                            </th>
                             <th className="py-3 px-4 font-semibold cursor-pointer" onClick={() => handleSort("employee_name")}>
                                 Employee Name
                             </th>
@@ -709,9 +706,6 @@ const DailyTimesheetReport = () => {
                             return (
                                 <React.Fragment key={idx}>
                                     <tr className="border-b dark:border-gray-700">
-                                        <td className="py-2 px-4">
-                                            {format(startDate, "MMM d")} - {format(endDate, "MMM d")}
-                                        </td>
                                         <td className="py-2 px-4">{row.employee_name}</td>
                                         <td className="py-2 px-4">{row.billable ? "Billable" : "Non-Billable"}</td>
                                         <td className="py-2 px-4">{row.company_name}</td>
@@ -748,7 +742,7 @@ const DailyTimesheetReport = () => {
 
                                     {isExpanded && (
                                         <tr className="bg-gray-100 dark:bg-gray-700 text-xs">
-                                            <td colSpan="7" className="py-3 px-4">
+                                            <td colSpan="6" className="py-3 px-4">
                                                 <div className="flex justify-between flex-wrap gap-4">
                                                     <div>
                                                         <div><strong>Work Area:</strong> {row.work_area || "—"}</div>
