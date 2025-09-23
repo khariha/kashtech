@@ -3,6 +3,8 @@ const BASE_URL = "http://localhost:5001/api"; // use an env variable to derive
 const API = {
   // 🔐 Auth
   AUTH_LOGIN: `${BASE_URL}/auth/login`,
+
+  USER_RESET_PASSWORD: `${BASE_URL}/user/reset-password`,
   GET_USER_PROFILE: `${BASE_URL}/user/me`,
 
   // 👤 Employee APIs

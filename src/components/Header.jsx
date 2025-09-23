@@ -1,6 +1,10 @@
 // src/components/Header.jsx
 import React from "react";
+
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { FaSearch } from "react-icons/fa";
+
 import { useSearch } from "../context/SearchContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -13,6 +17,9 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const fullName = localStorage.getItem("fullName") || "User";
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  let closeTimeout;
 
   // 🔠 Get initials (e.g., "DA" for Dhinesh Aranganathan)
   const getInitials = (name) => {
@@ -33,6 +40,17 @@ const Header = () => {
       `${location.pathname}${cleaned ? `?search=${encodeURIComponent(cleaned)}` : ""}`,
       { replace: true }
     );
+  };
+
+  const handleMouseEnter = () => {
+    if (closeTimeout) clearTimeout(closeTimeout);
+    setMenuOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimeout = setTimeout(() => {
+      setMenuOpen(false);
+    }, 200); // 200ms delay
   };
 
   const handleLogout = () => {
@@ -81,16 +99,35 @@ const Header = () => {
             Dark
           </button>
         </div>
+        
         <div
-          onClick={handleLogout}
-          title="Logout"
-          className="cursor-pointer w-10 h-10 rounded-full border border-purple-300 flex items-center justify-center text-purple-900 dark:border-gray-600 dark:text-white hover:bg-purple-100 dark:hover:bg-[#444]"
+          className="relative"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
-          <img src={LogoutImage} alt="Logout" className="w-5 h-5 object-contain" />
+          <div className="w-10 h-10 bg-purple-700 text-white flex items-center justify-center rounded-full font-semibold cursor-pointer">
+            {getInitials(fullName)}
+          </div>
+
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#2b2b3c] shadow-lg rounded-md overflow-hidden z-50">
+              <Link
+                to="/change-password"
+                className="block px-4 py-2 text-sm hover:bg-purple-100 dark:hover:bg-[#444]"
+              >
+                Change Password
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-purple-100 dark:hover:bg-[#444]"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
-        <div className="w-10 h-10 bg-purple-700 text-white flex items-center justify-center rounded-full font-semibold">
-          {getInitials(fullName)}
-        </div>
+
+
       </div>
     </div>
   );
