@@ -141,12 +141,8 @@ const ManageTimesheet = () => {
   }, [weekStartDate, employee]);
 
 
-  const handleAddToSheet = ({ company, companyName, project, projectName, workArea, taskArea, ticket }) => {
-    if (!company || !project) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
+  const handleAddToSheet = ({ company, companyName, project, projectName, workArea, taskArea, ticket, nonBillableReasonUuid, nonBillableReason }) => { // Add the reason here as well
+  
     const newEntry = {
       emp_id: employee,
       sow_id: project,
@@ -159,6 +155,8 @@ const ManageTimesheet = () => {
       notes: "",
       hours: [0, 0, 0, 0, 0, 0, 0],
       period_start_date: format(new Date(weekStartDate), "yyyy-MM-dd"),
+      nonBillableReasonUuid: nonBillableReasonUuid || null,
+      nonBillableReason: nonBillableReason || null,
     };
 
     setEntries((prev) => [...prev, newEntry]);
@@ -210,14 +208,15 @@ const ManageTimesheet = () => {
       const newEntries = [];
       const updateEntries = [];
 
-      for (const e of entries) {
+      for (const e of entries) { // Is derived from setEntries
         const hours = e.hours.map((h) => parseFloat(h) || 0);
+        
         const payload = {
           emp_id: e.emp_id,
-          sow_id: e.sow_id,
+          sow_id: e.sow_id, // we just leave this null if its a non-client non-billable item
           period_start_date: formattedDate,
-          billable: isBillable,
-          non_billable_reason: isBillable ? null : "General",
+          billable: e.billable || null, // Probably not insert at all; set as NULL
+          
           ticket_num: e.ticket || "",
           monday_hours: hours[0],
           tuesday_hours: hours[1],
@@ -230,6 +229,9 @@ const ManageTimesheet = () => {
           sub_assignment_segment_1: e.taskArea,
           sub_assignment_segment_2: e.notes,
           timesheet_status_entry: "Submitted",
+
+          non_billable_reason: e.nonBillableReason || null, // Not insert this as well, set as NULL
+          non_billable_reason_uuid: e.nonBillableReasonUuid || null,
         };
 
         /*
@@ -297,7 +299,7 @@ const ManageTimesheet = () => {
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        if (isEditMode) navigate("/timesheet-report");
+        if (isEditMode) navigate("/timesheet-weekly-hours-report");
       }, 2000);
     } catch (err) {
       console.error("❌ Save error:", err);

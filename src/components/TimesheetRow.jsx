@@ -18,6 +18,18 @@ const TimesheetRow = ({
     }
   };
 
+  const {
+    companyName,
+    projectName,
+    ticket,
+    workArea,
+    taskArea,
+    notes,
+    hours = [],
+    isBillable,
+    nonBillableReasonUuid,
+  } = entry;
+
   return (
     <>
       {/* Timesheet Data Row */}
