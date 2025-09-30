@@ -78,6 +78,10 @@ const ManageTimesheet = () => {
         formattedDate,
       });
 
+      // helper: normalize billable (boolean or "true"/"false" -> boolean)
+      const normalizeBool = (v) =>
+        typeof v === "boolean" ? v : String(v ?? "").toLowerCase() === "true";
+
       try {
         const res = await fetch(API.GET_TIMESHEET_BY_WEEK(employee, formattedDate), {
           headers: { Authorization: `Bearer ${token}` },
@@ -96,36 +100,62 @@ const ManageTimesheet = () => {
         console.log("📥 Loaded timesheet data:", data);
 
         if (Array.isArray(data) && data.length > 0) {
-          const formatted = data.map((e) => ({
-            timesheet_entry_id: e.timesheet_entry_id,
-            emp_id: e.emp_id,
-            sow_id: e.sow_id,
-            company_id: e.company_id,
-            companyName: e.company_name || "",
-            projectName: e.project_category || "",
-            ticket: e.ticket_num || "-",
-            workArea: e.sub_assignment || "-",
-            taskArea: e.sub_assignment_segment_1 || "-",
-            notes: e.sub_assignment_segment_2 || "",
-            hours: [
-              parseFloat(e.monday_hours || 0),
-              parseFloat(e.tuesday_hours || 0),
-              parseFloat(e.wednesday_hours || 0),
-              parseFloat(e.thursday_hours || 0),
-              parseFloat(e.friday_hours || 0),
-              parseFloat(e.saturday_hours || 0),
-              parseFloat(e.sunday_hours || 0),
-            ],
-            period_start_date: formattedDate,
-          }));
+          const formatted = data.map((e) => {
+            // treat empty string sow_id as null for NB rows
+            const sowId = e.sow_id === "" ? null : e.sow_id ?? null;
 
+            return {
+              timesheet_entry_id: e.timesheet_entry_id,
+              emp_id: e.emp_id,
+              sow_id: sowId,
+              company_id: e.company_id ?? null,
+
+              // Names for display (may be null for NB non-client-time)
+              companyName: e.company_name || "",
+              projectName: e.project_category || "",
+
+              ticket: e.ticket_num || "-",
+              workArea: e.sub_assignment || "-",
+              taskArea: e.sub_assignment_segment_1 || "-",
+              notes: e.sub_assignment_segment_2 || "",
+
+              // hours often come back as strings like "0.00"
+              hours: [
+                parseFloat(e.monday_hours || 0),
+                parseFloat(e.tuesday_hours || 0),
+                parseFloat(e.wednesday_hours || 0),
+                parseFloat(e.thursday_hours || 0),
+                parseFloat(e.friday_hours || 0),
+                parseFloat(e.saturday_hours || 0),
+                parseFloat(e.sunday_hours || 0),
+              ],
+
+              // new fields normalized for UI
+              billable: normalizeBool(e.billable),
+              nonBillableReason: e.non_billable_reason ?? null,
+              nonBillableReasonUuid: e.non_billable_reason_uuid ?? null,
+
+              timesheet_status_entry: e.timesheet_status_entry || "Submitted",
+              period_start_date: formattedDate,
+            };
+          });
+
+          // prime dependent UI bits from the first row if present
           const firstEntry = data[0];
-          if (firstEntry.company_id) setCompany(firstEntry.company_id);
-          if (firstEntry.sow_id) setProject(firstEntry.sow_id);
-          if (typeof firstEntry.billable === "boolean") setIsBillable(firstEntry.billable);
 
-          setEntries(formatted);
-          setOriginalEntries(formatted);
+          // only set company/project if they exist (NB non-client-time will be null)
+          if (firstEntry?.company_id) setCompany(firstEntry.company_id);
+          if (firstEntry?.sow_id) setProject(firstEntry.sow_id || null);
+
+          const sorted = [...formatted].sort((a, b) => {
+            const aId = Number(a.timesheet_entry_id) || -1;
+            const bId = Number(b.timesheet_entry_id) || -1;
+            return bId - aId;
+          });
+
+          setEntries(sorted);
+          setOriginalEntries(sorted);
+          
         } else {
           console.warn("⚠️ No data returned for timesheet.");
           setEntries([]);
@@ -140,10 +170,10 @@ const ManageTimesheet = () => {
     fetchSavedEntries();
   }, [weekStartDate, employee]);
 
-
-  const handleAddToSheet = ({ company, companyName, project, projectName, workArea, taskArea, ticket, nonBillableReasonUuid, nonBillableReason }) => { // Add the reason here as well
+  const handleAddToSheet = ({ billable, company, companyName, project, projectName, workArea, taskArea, ticket, nonBillableReasonUuid, nonBillableReason }) => { // Add the reason here as well
   
     const newEntry = {
+      billable, // Can be true, false, or null
       emp_id: employee,
       sow_id: project,
       company_id: company,
@@ -159,44 +189,17 @@ const ManageTimesheet = () => {
       nonBillableReason: nonBillableReason || null,
     };
 
-    setEntries((prev) => [...prev, newEntry]);
+   setEntries((prev) => [newEntry, ...prev]);
   };
 
-  const handleRemoveEntry = async (rowIdx) => {
-    const removed = entries[rowIdx];
-    console.log("🧹 Trying to remove:", removed);
-
-    // Make sure we have the entryId first
-    if (!removed?.timesheet_entry_id) {
-      console.log("⛔ Skipped delete: Missing timesheet_entry_id.");
-      return;
+  const toVarcharBool = (v) => {
+    if (v === true) return "true";
+    if (v === false) return "false";
+    if (typeof v === "string") {
+      const s = v.toLowerCase();
+      if (s === "true" || s === "false") return s;
     }
-
-    try {
-      const res = await fetch(
-        API.DELETE_TIMESHEET_ENTRY_BY_ID(removed.timesheet_entry_id),
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!res.ok) {
-        const msg = await res.json().catch(() => ({}));
-        console.error("❌ Failed to delete:", msg);
-        return;
-      }
-
-      console.log(`🗑️ Deleted entryId=${removed.timesheet_entry_id}`);
-
-      // Update state only if delete succeeds
-      setEntries((prev) => prev.filter((_, i) => i !== rowIdx));
-
-      // Track deleted entries locally if needed
-      deletedEntriesRef.current.push({
-        timesheet_entry_id: removed.timesheet_entry_id,
-      });
-      console.log("🚨 Deleting from ManageTimesheet:", deletedEntriesRef.current);
-    } catch (err) {
-      console.error("❌ Delete request failed:", err);
-    }
+    return null; // fallback if unset
   };
 
   const handleSave = async () => {
@@ -215,8 +218,7 @@ const ManageTimesheet = () => {
           emp_id: e.emp_id,
           sow_id: e.sow_id, // we just leave this null if its a non-client non-billable item
           period_start_date: formattedDate,
-          billable: e.billable || null, // Probably not insert at all; set as NULL
-          
+         
           ticket_num: e.ticket || "",
           monday_hours: hours[0],
           tuesday_hours: hours[1],
@@ -230,6 +232,7 @@ const ManageTimesheet = () => {
           sub_assignment_segment_2: e.notes,
           timesheet_status_entry: "Submitted",
 
+          billable: toVarcharBool(e.billable),
           non_billable_reason: e.nonBillableReason || null, // Not insert this as well, set as NULL
           non_billable_reason_uuid: e.nonBillableReasonUuid || null,
         };
@@ -306,6 +309,43 @@ const ManageTimesheet = () => {
       alert("❌ Failed to save timesheet.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRemoveEntry = async (rowIdx) => {
+    const removed = entries[rowIdx];
+    console.log("🧹 Trying to remove:", removed);
+
+    // Make sure we have the entryId first
+    if (!removed?.timesheet_entry_id) {
+      console.log("⛔ Skipped delete: Missing timesheet_entry_id.");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        API.DELETE_TIMESHEET_ENTRY_BY_ID(removed.timesheet_entry_id),
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        console.error("❌ Failed to delete:", msg);
+        return;
+      }
+
+      console.log(`🗑️ Deleted entryId=${removed.timesheet_entry_id}`);
+
+      // Update state only if delete succeeds
+      setEntries((prev) => prev.filter((_, i) => i !== rowIdx));
+
+      // Track deleted entries locally if needed
+      deletedEntriesRef.current.push({
+        timesheet_entry_id: removed.timesheet_entry_id,
+      });
+      console.log("🚨 Deleting from ManageTimesheet:", deletedEntriesRef.current);
+    } catch (err) {
+      console.error("❌ Delete request failed:", err);
     }
   };
 

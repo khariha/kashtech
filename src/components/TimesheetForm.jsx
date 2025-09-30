@@ -184,6 +184,7 @@ const TimesheetForm = ({
       projectOptions.find((p) => p.sow_id === project)?.project_category || "";
 
     handleAddToSheet({
+      billable: isBillable,
       company,
       companyName,
       project,
@@ -333,7 +334,7 @@ const TimesheetForm = ({
               value={taskArea}
               onChange={(e) => setTaskArea(e.target.value)}
               disabled={!workArea || areaOptions.task.length === 0}
-              className="border rounded px-3 py-2 min-w-[180px]"
+              className="border rounded px-3 py-2 pr-10 min-w-[180px]"
             >
               <option value="">
                 {workArea
